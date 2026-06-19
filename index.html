@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS Academy Pro - Final HD System</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root { --primary: #1e3a8a; --accent: #2563eb; --bg: #0f172a; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; padding: 10px; }
+        .main-card { background: #1e293b; padding: 20px; border-radius: 15px; max-width: 1100px; margin: auto; border: 1px solid #334155; }
+        
+        .header { text-align: center; border-bottom: 2px solid var(--accent); margin-bottom: 20px; padding-bottom: 10px; }
+        .inp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px; }
+        input { padding: 12px; background: #334155; border: 1px solid #475569; color: white; border-radius: 8px; width: 100%; box-sizing: border-box; }
+
+        /* 📸 Scanner Area */
+        #scanner-area { display: none; margin: 15px auto; max-width: 400px; border: 4px solid var(--accent); border-radius: 12px; overflow: hidden; background: #000; }
+        #reader { width: 100%; }
+
+        /* 📊 Table Display */
+        .table-display { background: white; color: black; padding: 10px; border-radius: 8px; overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }
+        th, td { border: 1px solid #000; padding: 6px 1px; text-align: center; font-size: 11px; font-weight: bold; }
+        th { background: #f1f5f9; }
+
+        /* 🆔 Hidden Capture Areas for HD Quality */
+        #capture-sheet { background: white; color: black; padding: 30px; width: 1180px; position: absolute; left: -9999px; }
+        #capture-qrs { background: white; color: black; padding: 40px; width: 850px; position: absolute; left: -9999px; }
+
+        .qr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .qr-card { border: 3px solid #000; padding: 15px; text-align: center; background: white; border-radius: 10px; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .st-photo { width: 120px; height: 140px; border: 2px solid #000; margin-bottom: 10px; object-fit: cover; }
+
+        .btn { padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; text-transform: uppercase; }
+        .btn-blue { background: var(--accent); }
+        .btn-green { background: #059669; }
+        .btn-red { background: #ef4444; margin-top: 20px; }
+        .btn-cam { background: #f59e0b; color: black; }
+    </style>
+</head>
+<body>
+
+<div class="main-card">
+    <div class="header"><h2>CS ACADEMY - KASHIF KHAN</h2></div>
+
+    <div class="inp-grid">
+        <input type="text" id="classInp" placeholder="Class Name" oninput="syncCfg()">
+        <input type="text" id="profInp" placeholder="Professor Name" oninput="syncCfg()">
+        <input type="text" id="subInp" placeholder="Subject Name (e.g. Operating System)" oninput="syncCfg()">
+        <input type="month" id="monthInp" onchange="syncCfg()">
+    </div>
+
+    <button class="btn btn-cam" onclick="toggleScanner()">📸 Open QR Scanner</button>
+    <div id="scanner-area"><div id="reader"></div></div>
+
+    <div class="inp-grid" style="margin-top:15px; background: #1e293b; padding: 10px; border-radius: 10px;">
+        <input type="text" id="stN" placeholder="Student Name">
+        <input type="text" id="stR" placeholder="Roll No">
+        <input type="text" id="stI" placeholder="ID Code">
+        <div style="font-size: 11px;">Upload Photo: <input type="file" id="stPhoto" accept="image/*" style="padding: 5px;"></div>
+        <button class="btn btn-green" onclick="addStudent()">+ Add Student</button>
+    </div>
+
+    <div class="table-display"><div id="table-content"></div></div>
+
+    <div class="inp-grid" style="margin-top:20px;">
+        <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'HD_Attendance_Sheet')">🖼️ Download HD Sheet</button>
+        <button class="btn btn-blue" style="background:#6366f1;" onclick="download8HDQRs()">📥 Download 8 HD Photo-Cards</button>
+    </div>
+
+    <button class="btn btn-red" onclick="resetSystem()">⚠️ Reset All Data (Clear Everything)</button>
+
+    <div id="capture-sheet"></div>
+    <div id="capture-qrs">
+        <h2 style="text-align:center; border-bottom:3px solid #000; padding-bottom:10px;">OFFICIAL STUDENT ID CARDS</h2>
+        <div class="qr-grid" id="qrList"></div>
+    </div>
+</div>
+
+<script>
+    let students = JSON.parse(localStorage.getItem('cs_v3_st')) || [];
+    let records = JSON.parse(localStorage.getItem('cs_v3_rec')) || {};
+    let config = JSON.parse(localStorage.getItem('cs_v3_cfg')) || { c:'', p:'', s:'', m:'' };
+    let html5QrCode;
+
+    window.onload = () => {
+        document.getElementById('classInp').value = config.c;
+        document.getElementById('profInp').value = config.p;
+        document.getElementById('subInp').value = config.s;
+        document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
+        syncCfg();
+    };
+
+    function syncCfg() {
+        config = { 
+            c: document.getElementById('classInp').value, 
+            p: document.getElementById('profInp').value, 
+            s: document.getElementById('subInp').value,
+            m: document.getElementById('monthInp').value 
+        };
+        localStorage.setItem('cs_v3_cfg', JSON.stringify(config));
+        drawTable();
+    }
+
+    function toggleScanner() {
+        const box = document.getElementById('scanner-area');
+        if (box.style.display === 'block') {
+            html5QrCode.stop().then(() => { box.style.display = 'none'; });
+        } else {
+            box.style.display = 'block';
+            html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
+                const day = new Date().getDate();
+                const key = `${config.m}-${day}-${id.trim()}`;
+                if(students.some(s => s.id === id.trim()) && !records[key]) {
+                    records[key] = true;
+                    localStorage.setItem('cs_v3_rec', JSON.stringify(records));
+                    drawTable();
+                }
+            });
+        }
+    }
+
+    function addStudent() {
+        const n = document.getElementById('stN').value, r = document.getElementById('stR').value, i = document.getElementById('stI').value;
+        const photo = document.getElementById('stPhoto').files[0];
+        if(n && i && photo) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                students.push({name:n, roll:r, id:i, photo: e.target.result});
+                localStorage.setItem('cs_v3_st', JSON.stringify(students));
+                document.getElementById('stN').value=''; document.getElementById('stR').value='';
+                drawTable();
+            };
+            reader.readAsDataURL(photo);
+        } else { alert("Please fill all fields and select a photo!"); }
+    }
+
+    function drawTable() {
+        const [year, month] = config.m.split('-').map(Number);
+        const days = new Date(year, month, 0).getDate();
+        let head = `<tr><th>Roll</th><th style="width:150px; text-align:left; padding-left:10px;">Name</th>`;
+        for(let d=1; d<=days; d++) head += `<th>${d}</th>`;
+        head += `<th>Total</th></tr>`;
+        
+        let body = '';
+        students.forEach(st => {
+            let count = 0;
+            let row = `<tr><td>${st.roll}</td><td style="text-align:left; padding-left:10px;">${st.name}</td>`;
+            for(let d=1; d<=days; d++) {
+                if(records[`${config.m}-${d}-${st.id}`]) { count++; row += '<td style="color:green">P</td>'; }
+                else row += '<td style="color:red; opacity:0.15">A</td>';
+            }
+            row += `<td style="background:#f1f5f9">${count}</td></tr>`; body += row;
+        });
+
+        const fullHTML = `
+            <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:10px;">
+                <h1 style="margin:0;">${config.c || 'ATTENDANCE SHEET'}</h1>
+                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-top:10px; padding:0 15px;">
+                    <span>Professor: ${config.p}</span>
+                    <span>Subject: ${config.s}</span>
+                    <span>Month: ${config.m}</span>
+                </div>
+            </div>
+            <table>${head}${body}</table>`;
+        
+        document.getElementById('table-content').innerHTML = fullHTML;
+        document.getElementById('capture-sheet').innerHTML = fullHTML;
+    }
+
+    function downloadHD(divId, fileName) {
+        html2canvas(document.getElementById(divId), { scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = fileName + '.png';
+            link.href = canvas.toDataURL("image/png", 1.0);
+            link.click();
+        });
+    }
+
+    async function download8HDQRs() {
+        const list = document.getElementById('qrList');
+        list.innerHTML = '';
+        students.slice(0, 8).forEach((st, idx) => {
+            const card = document.createElement('div');
+            card.className = 'qr-card';
+            card.innerHTML = `
+                <h2 style="margin:0; color:#1e3a8a;">${config.c}</h2>
+                <img src="${st.photo}" class="st-photo">
+                <div id="qrd-${idx}"></div>
+                <h2 style="margin:5px;">${st.name}</h2>
+                <p style="margin:0; font-size:18px;">Roll: ${st.roll}</p>
+            `;
+            list.appendChild(card);
+            new QRCode(document.getElementById(`qrd-${idx}`), { text: st.id, width: 120, height: 120 });
+        });
+        await new Promise(r => setTimeout(r, 1200));
+        downloadHD('capture-qrs', 'HD_Student_ID_Cards');
+    }
+
+    function resetSystem() {
+        if(confirm("⚠️ WARNING: This will delete ALL students and attendance records. Are you sure?")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+</script>
+</body>
+</html>
