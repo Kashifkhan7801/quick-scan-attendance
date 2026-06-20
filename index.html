@@ -40,6 +40,9 @@
         .btn-green { background: #059669; }
         .btn-red { background: #ef4444; margin-top: 20px; }
         .btn-cam { background: #f59e0b; color: black; }
+        
+        /* Checkbox Custom Styling for Table */
+        .st-check { transform: scale(1.3); cursor: pointer; }
     </style>
 </head>
 <body>
@@ -69,7 +72,7 @@
 
     <div class="inp-grid" style="margin-top:20px;">
         <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'HD_Attendance_Sheet')">🖼️ Download HD Sheet</button>
-        <button class="btn btn-blue" style="background:#6366f1;" onclick="download8HDQRs()">📥 Download 8 HD Photo-Cards</button>
+        <button class="btn btn-blue" style="background:#6366f1;" onclick="downloadSelectedHDQRs()">📥 Download Selected HD Photo-Cards</button>
     </div>
 
     <button class="btn btn-red" onclick="resetSystem()">⚠️ Reset All Data (Clear Everything)</button>
@@ -134,23 +137,33 @@
                 students.push({name:n, roll:r, id:i, photo: e.target.result});
                 localStorage.setItem('cs_v3_st', JSON.stringify(students));
                 document.getElementById('stN').value=''; document.getElementById('stR').value='';
+                document.getElementById('stI').value=''; document.getElementById('stPhoto').value='';
                 drawTable();
             };
             reader.readAsDataURL(photo);
         } else { alert("Please fill all fields and select a photo!"); }
     }
 
+    // سب کو سلیکٹ یا ڈی-سلیکٹ کرنے کا فنکشن
+    function toggleSelectAll(masterBox) {
+        const checkboxes = document.querySelectorAll('.st-select-item');
+        checkboxes.forEach(cb => cb.checked = masterBox.checked);
+    }
+
     function drawTable() {
         const [year, month] = config.m.split('-').map(Number);
         const days = new Date(year, month, 0).getDate();
-        let head = `<tr><th>Roll</th><th style="width:150px; text-align:left; padding-left:10px;">Name</th>`;
+        
+        // ہیڈر میں چیک باکس شامل کیا گیا ہے
+        let head = `<tr><th style="width:40px;"><input type="checkbox" id="selectAllBox" onchange="toggleSelectAll(this)" class="st-check"></th><th>Roll</th><th style="width:150px; text-align:left; padding-left:10px;">Name</th>`;
         for(let d=1; d<=days; d++) head += `<th>${d}</th>`;
         head += `<th>Total</th></tr>`;
         
         let body = '';
-        students.forEach(st => {
+        students.forEach((st, idx) => {
             let count = 0;
-            let row = `<tr><td>${st.roll}</td><td style="text-align:left; padding-left:10px;">${st.name}</td>`;
+            // ہر روو (Row) میں اسٹوڈنٹ کا مخصوص چیک باکس
+            let row = `<tr><td><input type="checkbox" data-idx="${idx}" class="st-check st-select-item"></td><td>${st.roll}</td><td style="text-align:left; padding-left:10px;">${st.name}</td>`;
             for(let d=1; d<=days; d++) {
                 if(records[`${config.m}-${d}-${st.id}`]) { count++; row += '<td style="color:green">P</td>'; }
                 else row += '<td style="color:red; opacity:0.15">A</td>';
@@ -182,24 +195,39 @@
         });
     }
 
-    async function download8HDQRs() {
+    // 🛠️ آپ کی فرمائش کے مطابق نیا کسٹم سلیکشن فنکشن
+    async function downloadSelectedHDQRs() {
         const list = document.getElementById('qrList');
-        list.innerHTML = '';
-        students.slice(0, 8).forEach((st, idx) => {
+        list.innerHTML = ''; // پرانا ڈیٹا کلیئر کرنا
+        
+        // صرف ان چیک باکسز کو ڈھونڈنا جو ٹک (Checked) ہیں
+        const selectedCheckboxes = document.querySelectorAll('.st-select-item:checked');
+        
+        if (selectedCheckboxes.length === 0) {
+            alert("Please select at least one student from the table first!");
+            return;
+        }
+
+        selectedCheckboxes.forEach((cb, currentIdx) => {
+            const studentIndex = cb.getAttribute('data-idx');
+            const st = students[studentIndex];
+            
             const card = document.createElement('div');
             card.className = 'qr-card';
             card.innerHTML = `
                 <h2 style="margin:0; color:#1e3a8a;">${config.c}</h2>
                 <img src="${st.photo}" class="st-photo">
-                <div id="qrd-${idx}"></div>
+                <div id="qrd-${currentIdx}"></div>
                 <h2 style="margin:5px;">${st.name}</h2>
                 <p style="margin:0; font-size:18px;">Roll: ${st.roll}</p>
             `;
             list.appendChild(card);
-            new QRCode(document.getElementById(`qrd-${idx}`), { text: st.id, width: 120, height: 120 });
+            new QRCode(document.getElementById(`qrd-${currentIdx}`), { text: st.id, width: 120, height: 120 });
         });
+
+        // QR کوڈز کے رینڈر ہونے کا انتظار کرنا
         await new Promise(r => setTimeout(r, 1200));
-        downloadHD('capture-qrs', 'HD_Student_ID_Cards');
+        downloadHD('capture-qrs', 'HD_Selected_Student_ID_Cards');
     }
 
     function resetSystem() {
