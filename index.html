@@ -3,37 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS Academy Pro - Final HD System</title>
+    <title>CS Academy Pro - IndexedDB Stable Attendance System</title>
+    
+    <!-- External Libraries -->
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
+    <!-- Dexie.js (Stable Wrapper for IndexedDB) -->
+    <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
+
     <style>
         :root { --primary: #1e3a8a; --accent: #2563eb; --bg: #0f172a; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; padding: 10px; }
-        .main-card { background: #1e293b; padding: 20px; border-radius: 15px; max-width: 1100px; margin: auto; border: 1px solid #334155; }
+        .main-card { background: #1e293b; padding: 20px; border-radius: 15px; max-width: 1180px; margin: auto; border: 1px solid #334155; }
         
         .header { text-align: center; border-bottom: 2px solid var(--accent); margin-bottom: 20px; padding-bottom: 10px; }
         .inp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        input { padding: 12px; background: #334155; border: 1px solid #475569; color: white; border-radius: 8px; width: 100%; box-sizing: border-box; }
+        input[type="text"], input[type="month"] { padding: 12px; background: #334155; border: 1px solid #475569; color: white; border-radius: 8px; width: 100%; box-sizing: border-box; }
 
-        /* 📸 Scanner Area */
+        /* Scanner Area */
         #scanner-area { display: none; margin: 15px auto; max-width: 400px; border: 4px solid var(--accent); border-radius: 12px; overflow: hidden; background: #000; }
         #reader { width: 100%; }
 
-        /* 📊 Table Display */
+        /* Table Display */
         .table-display { background: white; color: black; padding: 10px; border-radius: 8px; overflow-x: auto; margin-top: 15px; }
         table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }
         th, td { border: 1px solid #000; padding: 6px 1px; text-align: center; font-size: 11px; font-weight: bold; }
         th { background: #f1f5f9; }
 
-        /* 🆔 Hidden Capture Areas for HD Quality */
-        #capture-sheet { background: white; color: black; padding: 30px; width: 1180px; position: absolute; left: -9999px; }
+        .action-btn { padding: 3px 6px; font-size: 11px; border: none; border-radius: 4px; cursor: pointer; color: white; margin-left: 3px; }
+        .btn-edit { background: #f59e0b; }
+        .btn-del { background: #ef4444; }
+
+        #capture-sheet { background: white; color: black; padding: 30px; width: 1250px; position: absolute; left: -9999px; }
         #capture-qrs { background: white; color: black; padding: 40px; width: 850px; position: absolute; left: -9999px; }
 
         .qr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-        .qr-card { border: 3px solid #000; padding: 15px; text-align: center; background: white; border-radius: 10px; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .st-photo { width: 120px; height: 140px; border: 2px solid #000; margin-bottom: 10px; object-fit: cover; }
+        .qr-card { border: 3px solid #000; padding: 20px; text-align: center; background: white; border-radius: 10px; min-height: 440px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .st-photo { width: 130px; height: 150px; border: 2px solid #000; margin-bottom: 10px; object-fit: cover; border-radius: 4px; }
 
         .btn { padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; text-transform: uppercase; }
         .btn-blue { background: var(--accent); }
@@ -41,72 +49,210 @@
         .btn-red { background: #ef4444; margin-top: 20px; }
         .btn-cam { background: #f59e0b; color: black; }
         
-        /* Checkbox Custom Styling for Table */
         .st-check { transform: scale(1.3); cursor: pointer; }
+        .brand-upload-section { background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid #334155; margin-bottom: 15px; }
+        .color-inp { height: 40px; width: 100%; cursor: pointer; border-radius: 8px; border: 1px solid #475569; background: #334155; }
+        
+        #temp-qr-box { display: none; }
+        .status-badge { text-align: center; background: #059669; padding: 6px; border-radius: 6px; font-size: 12px; margin-bottom: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="main-card">
     <div class="header"><h2>CS ACADEMY - KASHIF KHAN</h2></div>
+    <div id="status" class="status-badge">💾 IndexedDB Database Active (Dexie Engine)</div>
 
+    <div id="temp-qr-box"></div>
+
+    <!-- Customization Options -->
+    <div class="brand-upload-section">
+        <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #38bdf8;">🎨 Branding & Color Customization Settings:</div>
+        <div class="inp-grid">
+            <div style="font-size: 11px;">Upload Logo (Left): <input type="file" id="logoInp" accept="image/*" onchange="uploadBrandImage('logo')" style="padding: 5px;"></div>
+            <div style="font-size: 11px;">Upload Photo (Right): <input type="file" id="principalInp" accept="image/*" onchange="uploadBrandImage('principal')" style="padding: 5px;"></div>
+            <div style="font-size: 11px;">Upload Signature: <input type="file" id="sigInp" accept="image/*" onchange="uploadBrandImage('sig')" style="padding: 5px;"></div>
+        </div>
+        <div class="inp-grid">
+            <div>Title Text Color: <input type="color" id="titleColorInp" class="color-inp" value="#000000" onchange="syncCfg()"></div>
+            <div>Header Background Color: <input type="color" id="headerBgInp" class="color-inp" value="#ffffff" onchange="syncCfg()"></div>
+            <input type="text" id="sigTitleInp" placeholder="Signature Title (e.g. Principal)" oninput="syncCfg()">
+            <input type="text" id="footerLinkInp" placeholder="Verification Link for Bottom Left QR" oninput="syncCfg()">
+        </div>
+    </div>
+
+    <!-- Header Info -->
     <div class="inp-grid">
-        <input type="text" id="classInp" placeholder="Class Name" oninput="syncCfg()">
-        <input type="text" id="profInp" placeholder="Professor Name" oninput="syncCfg()">
-        <input type="text" id="subInp" placeholder="Subject Name (e.g. Operating System)" oninput="syncCfg()">
+        <input type="text" id="classInp" placeholder="Institution / Class / Company Name" oninput="syncCfg()">
+        <input type="text" id="profInp" placeholder="Instructor / Supervisor Name" oninput="syncCfg()">
+        <input type="text" id="subInp" placeholder="Subject / Department" oninput="syncCfg()">
         <input type="month" id="monthInp" onchange="syncCfg()">
     </div>
 
     <button class="btn btn-cam" onclick="toggleScanner()">📸 Open QR Scanner</button>
     <div id="scanner-area"><div id="reader"></div></div>
 
+    <!-- Student Registration Form -->
     <div class="inp-grid" style="margin-top:15px; background: #1e293b; padding: 10px; border-radius: 10px;">
+        <input type="hidden" id="editIndex" value="-1">
         <input type="text" id="stN" placeholder="Student Name">
-        <input type="text" id="stR" placeholder="Roll No">
-        <input type="text" id="stI" placeholder="ID Code">
+        <input type="text" id="stF" placeholder="Father's Name">
+        <input type="text" id="stR" placeholder="Roll No / ID">
+        <input type="text" id="stI" placeholder="QR Code Value">
         <div style="font-size: 11px;">Upload Photo: <input type="file" id="stPhoto" accept="image/*" style="padding: 5px;"></div>
-        <button class="btn btn-green" onclick="addStudent()">+ Add Student</button>
+        <button class="btn btn-green" id="addBtn" onclick="addOrUpdateStudent()">+ Add Student</button>
     </div>
 
     <div class="table-display"><div id="table-content"></div></div>
 
     <div class="inp-grid" style="margin-top:20px;">
-        <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'HD_Attendance_Sheet')">🖼️ Download HD Sheet</button>
-        <button class="btn btn-blue" style="background:#6366f1;" onclick="downloadSelectedHDQRs()">📥 Download Selected HD Photo-Cards</button>
+        <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'Full_Attendance_Sheet')">🖼️ Download Full HD Sheet</button>
+        <button class="btn btn-green" onclick="downloadSelectedHDSheet()">📥 Download Selected HD Sheet</button>
+        <button class="btn btn-blue" style="background:#6366f1;" onclick="downloadSelectedHDQRs()">📥 Download Selected Photo-Cards</button>
     </div>
 
-    <button class="btn btn-red" onclick="resetSystem()">⚠️ Reset All Data (Clear Everything)</button>
+    <button class="btn btn-red" onclick="resetSystem()">⚠️ Reset All Data (Clear IndexedDB Storage)</button>
 
     <div id="capture-sheet"></div>
     <div id="capture-qrs">
-        <h2 style="text-align:center; border-bottom:3px solid #000; padding-bottom:10px;">OFFICIAL STUDENT ID CARDS</h2>
+        <h2 style="text-align:center; border-bottom:3px solid #000; padding-bottom:10px; margin-bottom: 20px;">OFFICIAL ID CARDS</h2>
         <div class="qr-grid" id="qrList"></div>
     </div>
 </div>
 
 <script>
-    let students = JSON.parse(localStorage.getItem('cs_v3_st')) || [];
-    let records = JSON.parse(localStorage.getItem('cs_v3_rec')) || {};
-    let config = JSON.parse(localStorage.getItem('cs_v3_cfg')) || { c:'', p:'', s:'', m:'' };
-    let html5QrCode;
+    // --------------------------------------------------
+    // 📦 INDEXEDB DATABASE SETUP VIA DEXIE.JS
+    // --------------------------------------------------
+    const db = new Dexie("CS_Academy_Persistent_DB");
+    
+    // Define Database Schema
+    db.version(1).stores({
+        students: 'id, name, father, roll',
+        records: 'key, val',
+        config: 'id'
+    });
 
-    window.onload = () => {
-        document.getElementById('classInp').value = config.c;
-        document.getElementById('profInp').value = config.p;
-        document.getElementById('subInp').value = config.s;
-        document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
-        syncCfg();
+    let students = [];
+    let records = {};
+    let config = { c: '', p: '', s: '', m: '', logo: '', principal: '', sig: '', sigTitle: '', link: '', titleColor: '#000000', headerBg: '#ffffff' };
+    let html5QrCode;
+    let cachedFooterQrDataUrl = "";
+
+    window.onload = async () => {
+        await loadAllFromIndexedDB();
     };
 
-    function syncCfg() {
-        config = { 
-            c: document.getElementById('classInp').value, 
-            p: document.getElementById('profInp').value, 
-            s: document.getElementById('subInp').value,
-            m: document.getElementById('monthInp').value 
+    async function loadAllFromIndexedDB() {
+        try {
+            // Load Config
+            const savedCfg = await db.config.get('app_config');
+            if (savedCfg && savedCfg.data) {
+                config = savedCfg.data;
+            }
+            
+            document.getElementById('classInp').value = config.c || '';
+            document.getElementById('profInp').value = config.p || '';
+            document.getElementById('subInp').value = config.s || '';
+            document.getElementById('sigTitleInp').value = config.sigTitle || '';
+            document.getElementById('footerLinkInp').value = config.link || '';
+            document.getElementById('titleColorInp').value = config.titleColor || '#000000';
+            document.getElementById('headerBgInp').value = config.headerBg || '#ffffff';
+            document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
+
+            // Load Students
+            students = await db.students.toArray();
+
+            // Load Records
+            const recArr = await db.records.toArray();
+            records = {};
+            recArr.forEach(item => { records[item.key] = item.val; });
+
+            syncCfg();
+        } catch (e) {
+            console.error("IndexedDB Load Error:", e);
+        }
+    }
+
+    async function syncCfg() {
+        config.c = document.getElementById('classInp').value;
+        config.p = document.getElementById('profInp').value;
+        config.s = document.getElementById('subInp').value;
+        config.sigTitle = document.getElementById('sigTitleInp').value;
+        config.link = document.getElementById('footerLinkInp').value;
+        config.titleColor = document.getElementById('titleColorInp').value;
+        config.headerBg = document.getElementById('headerBgInp').value;
+        config.m = document.getElementById('monthInp').value;
+        
+        await db.config.put({ id: 'app_config', data: config });
+        generateFooterQRDataUrl(() => { drawTable(); });
+    }
+
+    function generateFooterQRDataUrl(callback) {
+        if (!config.link) {
+            cachedFooterQrDataUrl = "";
+            if (callback) callback();
+            return;
+        }
+
+        const tempBox = document.getElementById('temp-qr-box');
+        tempBox.innerHTML = '';
+        new QRCode(tempBox, { text: config.link, width: 75, height: 75, correctLevel: QRCode.CorrectLevel.H });
+
+        setTimeout(() => {
+            const canvas = tempBox.querySelector('canvas');
+            const img = tempBox.querySelector('img');
+            if (canvas) cachedFooterQrDataUrl = canvas.toDataURL('image/png');
+            else if (img && img.src) cachedFooterQrDataUrl = img.src;
+            if (callback) callback();
+        }, 150);
+    }
+
+    function processImage(file, maxDim, callback) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width, height = img.height;
+
+                if (width > height && width > maxDim) {
+                    height = Math.round((height * maxDim) / width);
+                    width = maxDim;
+                } else if (height > maxDim) {
+                    width = Math.round((width * maxDim) / height);
+                    height = maxDim;
+                }
+
+                canvas.width = width; canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+                callback(canvas.toDataURL('image/png'));
+            };
+            img.src = e.target.result;
         };
-        localStorage.setItem('cs_v3_cfg', JSON.stringify(config));
-        drawTable();
+        reader.readAsDataURL(file);
+    }
+
+    function uploadBrandImage(type) {
+        let fileInput;
+        if (type === 'logo') fileInput = document.getElementById('logoInp');
+        else if (type === 'principal') fileInput = document.getElementById('principalInp');
+        else if (type === 'sig') fileInput = document.getElementById('sigInp');
+
+        const file = fileInput.files[0];
+        if (file) {
+            processImage(file, 400, async (base64Img) => {
+                if (type === 'logo') config.logo = base64Img;
+                else if (type === 'principal') config.principal = base64Img;
+                else if (type === 'sig') config.sig = base64Img;
+
+                await db.config.put({ id: 'app_config', data: config });
+                drawTable();
+            });
+        }
     }
 
     function toggleScanner() {
@@ -116,78 +262,167 @@
         } else {
             box.style.display = 'block';
             html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, (id) => {
+            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, async (id) => {
                 const day = new Date().getDate();
                 const key = `${config.m}-${day}-${id.trim()}`;
                 if(students.some(s => s.id === id.trim()) && !records[key]) {
                     records[key] = true;
-                    localStorage.setItem('cs_v3_rec', JSON.stringify(records));
+                    await db.records.put({ key: key, val: true });
                     drawTable();
                 }
             });
         }
     }
 
-    function addStudent() {
-        const n = document.getElementById('stN').value, r = document.getElementById('stR').value, i = document.getElementById('stI').value;
-        const photo = document.getElementById('stPhoto').files[0];
-        if(n && i && photo) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                students.push({name:n, roll:r, id:i, photo: e.target.result});
-                localStorage.setItem('cs_v3_st', JSON.stringify(students));
-                document.getElementById('stN').value=''; document.getElementById('stR').value='';
-                document.getElementById('stI').value=''; document.getElementById('stPhoto').value='';
-                drawTable();
-            };
-            reader.readAsDataURL(photo);
-        } else { alert("Please fill all fields and select a photo!"); }
+    function addOrUpdateStudent() {
+        const idx = parseInt(document.getElementById('editIndex').value);
+        const n = document.getElementById('stN').value, f = document.getElementById('stF').value, r = document.getElementById('stR').value, i = document.getElementById('stI').value;
+        const photoInput = document.getElementById('stPhoto');
+        
+        if(!n || !i) { alert("Please fill Name and QR Code fields!"); return; }
+
+        if (photoInput.files[0]) {
+            processImage(photoInput.files[0], 500, (base64Photo) => {
+                saveStudentData(idx, n, f, r, i, base64Photo);
+            });
+        } else {
+            const existingPhoto = (idx >= 0 && students[idx]) ? students[idx].photo : '';
+            saveStudentData(idx, n, f, r, i, existingPhoto);
+        }
     }
 
-    // سب کو سلیکٹ یا ڈی-سلیکٹ کرنے کا فنکشن
+    async function saveStudentData(idx, name, father, roll, id, photo) {
+        const stObj = { name, father, roll, id, photo };
+
+        if (idx >= 0) {
+            const oldId = students[idx].id;
+            if (oldId !== id) await db.students.delete(oldId);
+            students[idx] = stObj;
+        } else {
+            students.push(stObj);
+        }
+        
+        // Direct IndexedDB Save
+        await db.students.put(stObj);
+
+        document.getElementById('editIndex').value = "-1";
+        document.getElementById('stN').value = ''; 
+        document.getElementById('stF').value = ''; 
+        document.getElementById('stR').value = '';
+        document.getElementById('stI').value = ''; 
+        document.getElementById('stPhoto').value = '';
+        document.getElementById('addBtn').innerText = "+ Add Student";
+        document.getElementById('addBtn').style.background = "#059669";
+        
+        drawTable();
+    }
+
+    function editStudent(idx) {
+        const st = students[idx];
+        document.getElementById('editIndex').value = idx;
+        document.getElementById('stN').value = st.name;
+        document.getElementById('stF').value = st.father || '';
+        document.getElementById('stR').value = st.roll;
+        document.getElementById('stI').value = st.id;
+        document.getElementById('addBtn').innerText = "🔄 Update Student";
+        document.getElementById('addBtn').style.background = "#f59e0b";
+    }
+
+    async function deleteStudent(idx) {
+        if(confirm(`Are you sure you want to delete ${students[idx].name}?`)) {
+            const deletedId = students[idx].id;
+            students.splice(idx, 1);
+            await db.students.delete(deletedId);
+            drawTable();
+        }
+    }
+
     function toggleSelectAll(masterBox) {
         const checkboxes = document.querySelectorAll('.st-select-item');
         checkboxes.forEach(cb => cb.checked = masterBox.checked);
     }
 
-    function drawTable() {
-        const [year, month] = config.m.split('-').map(Number);
+    function generateHeaderHTML() {
+        const logoImg = config.logo ? `<img src="${config.logo}" style="height:70px; width:70px; object-fit:contain; border:2px solid ${config.titleColor}; border-radius:8px; padding:2px; background:white;">` : '<div style="width:70px;"></div>';
+        const principalImg = config.principal ? `<img src="${config.principal}" style="height:75px; width:65px; object-fit:cover; border:2px solid ${config.titleColor}; border-radius:6px; background:white;">` : '<div style="width:65px;"></div>';
+
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding:10px; margin-bottom:10px; background-color:${config.headerBg}; border-radius:8px;">
+                <div style="width:80px; text-align:left;">${logoImg}</div>
+                <div style="text-align:center; flex-grow:1;">
+                    <h1 style="margin:0; font-size:26px; text-transform:uppercase; color:${config.titleColor};">${config.c || 'ATTENDANCE SHEET'}</h1>
+                    <div style="display:flex; justify-content:center; gap:20px; font-weight:bold; margin-top:8px; font-size:14px; color:${config.titleColor};">
+                        <span>Incharge: ${config.p}</span>
+                        <span>Subject/Dept: ${config.s}</span>
+                        <span>Month: ${config.m}</span>
+                    </div>
+                </div>
+                <div style="width:80px; text-align:right;">${principalImg}</div>
+            </div>`;
+    }
+
+    function generateFooterHTML() {
+        const sigImg = config.sig ? `<img src="${config.sig}" style="height:55px; max-width:180px; object-fit:contain;"><br>` : '';
+        const sigTitleText = config.sigTitle ? `<span style="font-weight:bold; font-size:12px; border-top:1px solid #000; padding-top:2px; display:inline-block;">${config.sigTitle}</span>` : '';
+        const qrImgHTML = cachedFooterQrDataUrl ? `<img src="${cachedFooterQrDataUrl}" style="width:75px; height:75px; display:block; border:1px solid #000; padding:2px; background:white;">` : '';
+
+        return `
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:20px; padding:0 10px;">
+                <div style="text-align:left;">${qrImgHTML}</div>
+                <div style="text-align:center;">${sigImg}${sigTitleText}</div>
+            </div>`;
+    }
+
+    function renderTableHTML(forDownload = false) {
+        // 🔢 SORTING ROLL NUMBERS NUMERICALLY (1, 2, 3 ... 10, 11 ... 40)
+        students.sort((a, b) => (parseInt(a.roll) || 0) - (parseInt(b.roll) || 0));
+
+        const [year, month] = (config.m || new Date().toISOString().slice(0, 7)).split('-').map(Number);
         const days = new Date(year, month, 0).getDate();
         
-        // ہیڈر میں چیک باکس شامل کیا گیا ہے
-        let head = `<tr><th style="width:40px;"><input type="checkbox" id="selectAllBox" onchange="toggleSelectAll(this)" class="st-check"></th><th>Roll</th><th style="width:150px; text-align:left; padding-left:10px;">Name</th>`;
+        let head = `<tr>`;
+        if (!forDownload) head += `<th style="width:35px;"><input type="checkbox" id="selectAllBox" onchange="toggleSelectAll(this)" class="st-check"></th>`;
+        head += `<th>Roll</th><th style="min-width:140px; text-align:left; padding-left:8px;">Name</th><th style="min-width:120px; text-align:left; padding-left:8px;">Father's Name</th>`;
         for(let d=1; d<=days; d++) head += `<th>${d}</th>`;
         head += `<th>Total</th></tr>`;
         
         let body = '';
         students.forEach((st, idx) => {
             let count = 0;
-            // ہر روو (Row) میں اسٹوڈنٹ کا مخصوص چیک باکس
-            let row = `<tr><td><input type="checkbox" data-idx="${idx}" class="st-check st-select-item"></td><td>${st.roll}</td><td style="text-align:left; padding-left:10px;">${st.name}</td>`;
+            let row = `<tr>`;
+            if (!forDownload) row += `<td><input type="checkbox" data-idx="${idx}" class="st-check st-select-item"></td>`;
+            row += `<td>${st.roll}</td>
+                <td style="text-align:left; padding-left:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span>${st.name}</span>
+                        ${!forDownload ? `
+                            <span>
+                                <button class="action-btn btn-edit" onclick="editStudent(${idx})">✏️</button>
+                                <button class="action-btn btn-del" onclick="deleteStudent(${idx})">🗑️</button>
+                            </span>` : ''
+                        }
+                    </div>
+                </td>
+                <td style="text-align:left; padding-left:8px;">${st.father || '-'}</td>`;
+            
             for(let d=1; d<=days; d++) {
                 if(records[`${config.m}-${d}-${st.id}`]) { count++; row += '<td style="color:green">P</td>'; }
                 else row += '<td style="color:red; opacity:0.15">A</td>';
             }
-            row += `<td style="background:#f1f5f9">${count}</td></tr>`; body += row;
+            row += `<td style="background:#f1f5f9">${count}</td></tr>`; 
+            body += row;
         });
 
-        const fullHTML = `
-            <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:10px;">
-                <h1 style="margin:0;">${config.c || 'ATTENDANCE SHEET'}</h1>
-                <div style="display:flex; justify-content:space-between; font-weight:bold; margin-top:10px; padding:0 15px;">
-                    <span>Professor: ${config.p}</span>
-                    <span>Subject: ${config.s}</span>
-                    <span>Month: ${config.m}</span>
-                </div>
-            </div>
-            <table>${head}${body}</table>`;
-        
-        document.getElementById('table-content').innerHTML = fullHTML;
-        document.getElementById('capture-sheet').innerHTML = fullHTML;
+        return generateHeaderHTML() + `<table>${head}${body}</table>` + generateFooterHTML();
+    }
+
+    function drawTable() {
+        document.getElementById('table-content').innerHTML = renderTableHTML(false);
+        document.getElementById('capture-sheet').innerHTML = renderTableHTML(true);
     }
 
     function downloadHD(divId, fileName) {
-        html2canvas(document.getElementById(divId), { scale: 3, backgroundColor: "#ffffff" }).then(canvas => {
+        html2canvas(document.getElementById(divId), { scale: 3, backgroundColor: "#ffffff", useCORS: true }).then(canvas => {
             const link = document.createElement('a');
             link.download = fileName + '.png';
             link.href = canvas.toDataURL("image/png", 1.0);
@@ -195,14 +430,48 @@
         });
     }
 
-    // 🛠️ آپ کی فرمائش کے مطابق نیا کسٹم سلیکشن فنکشن
+    function downloadSelectedHDSheet() {
+        const selectedCheckboxes = document.querySelectorAll('.st-select-item:checked');
+        if (selectedCheckboxes.length === 0) {
+            alert("Please select at least one student from the table first!");
+            return;
+        }
+
+        const [year, month] = config.m.split('-').map(Number);
+        const days = new Date(year, month, 0).getDate();
+
+        let head = `<tr><th>Roll</th><th style="min-width:140px; text-align:left; padding-left:8px;">Name</th><th style="min-width:120px; text-align:left; padding-left:8px;">Father's Name</th>`;
+        for(let d=1; d<=days; d++) head += `<th>${d}</th>`;
+        head += `<th>Total</th></tr>`;
+
+        let body = '';
+        selectedCheckboxes.forEach((cb) => {
+            const idx = cb.getAttribute('data-idx');
+            const st = students[idx];
+            let count = 0;
+            let row = `<tr><td>${st.roll}</td><td style="text-align:left; padding-left:8px;">${st.name}</td><td style="text-align:left; padding-left:8px;">${st.father || '-'}</td>`;
+            for(let d=1; d<=days; d++) {
+                if(records[`${config.m}-${d}-${st.id}`]) { count++; row += '<td style="color:green">P</td>'; }
+                else row += '<td style="color:red; opacity:0.15">A</td>';
+            }
+            row += `<td style="background:#f1f5f9">${count}</td></tr>`; 
+            body += row;
+        });
+
+        const selectedHTML = generateHeaderHTML() + `<table>${head}${body}</table>` + generateFooterHTML();
+        document.getElementById('capture-sheet').innerHTML = selectedHTML;
+
+        setTimeout(() => {
+            downloadHD('capture-sheet', 'Selected_Students_Attendance_Sheet');
+            setTimeout(drawTable, 500);
+        }, 200);
+    }
+
     async function downloadSelectedHDQRs() {
         const list = document.getElementById('qrList');
-        list.innerHTML = ''; // پرانا ڈیٹا کلیئر کرنا
+        list.innerHTML = '';
         
-        // صرف ان چیک باکسز کو ڈھونڈنا جو ٹک (Checked) ہیں
         const selectedCheckboxes = document.querySelectorAll('.st-select-item:checked');
-        
         if (selectedCheckboxes.length === 0) {
             alert("Please select at least one student from the table first!");
             return;
@@ -215,24 +484,24 @@
             const card = document.createElement('div');
             card.className = 'qr-card';
             card.innerHTML = `
-                <h2 style="margin:0; color:#1e3a8a;">${config.c}</h2>
+                <h2 style="margin:0 0 10px 0; color:${config.titleColor}; font-size:22px;">${config.c || 'OFFICIAL ID CARD'}</h2>
                 <img src="${st.photo}" class="st-photo">
-                <div id="qrd-${currentIdx}"></div>
-                <h2 style="margin:5px;">${st.name}</h2>
-                <p style="margin:0; font-size:18px;">Roll: ${st.roll}</p>
+                <div id="qrd-${currentIdx}" style="margin:10px 0;"></div>
+                <h2 style="margin:3px; font-size:20px; color:${config.titleColor};">${st.name}</h2>
+                <p style="margin:2px; font-size:14px; font-weight:bold; color:#475569;">S/O: ${st.father || '-'}</p>
+                <p style="margin:0; font-size:16px; font-weight:bold;">Roll / ID: ${st.roll}</p>
             `;
             list.appendChild(card);
-            new QRCode(document.getElementById(`qrd-${currentIdx}`), { text: st.id, width: 120, height: 120 });
+            new QRCode(document.getElementById(`qrd-${currentIdx}`), { text: st.id, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.H });
         });
 
-        // QR کوڈز کے رینڈر ہونے کا انتظار کرنا
-        await new Promise(r => setTimeout(r, 1200));
-        downloadHD('capture-qrs', 'HD_Selected_Student_ID_Cards');
+        await new Promise(r => setTimeout(r, 800));
+        downloadHD('capture-qrs', 'HD_Clear_Student_ID_Cards');
     }
 
-    function resetSystem() {
-        if(confirm("⚠️ WARNING: This will delete ALL students and attendance records. Are you sure?")) {
-            localStorage.clear();
+    async function resetSystem() {
+        if(confirm("⚠️ WARNING: This will PERMANENTLY DELETE ALL DATA in IndexedDB storage. Are you sure?")) {
+            await db.delete();
             location.reload();
         }
     }
