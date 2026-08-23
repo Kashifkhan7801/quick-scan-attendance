@@ -150,14 +150,8 @@
 
     let students = [];
     let records = {};
-    let config = { 
-        c: '', p: '', s: '', m: '', logo: '', principal: '', sig: '', sigTitle: '', link: '', titleColor: '#000000', headerBg: '#ffffff', 
-        fbApiKey: 'AIzaSyDRnw3mMT5WgslhRTEL3cIQ43mV7I2Xnto', 
-        fbAuthDomain: 'cs-academy-27314.firebaseapp.com', 
-        fbDbUrl: 'https://cs-academy-27314-default-rtdb.firebaseio.com', 
-        fbProjectId: 'cs-academy-27314' 
-    };
-    let html5QrCode = null;
+    let config = { c: '', p: '', s: '', m: '', logo: '', principal: '', sig: '', sigTitle: '', link: '', titleColor: '#000000', headerBg: '#ffffff', fbApiKey: '', fbAuthDomain: '', fbDbUrl: '', fbProjectId: '' };
+    let html5QrCode;
     let cachedFooterQrDataUrl = "";
     let firebaseDB = null;
 
@@ -225,7 +219,7 @@
         try {
             const savedCfg = await db.config.get('app_config');
             if (savedCfg && savedCfg.data) {
-                config = { ...config, ...savedCfg.data };
+                config = savedCfg.data;
             }
             
             document.getElementById('classInp').value = config.c || '';
@@ -237,11 +231,11 @@
             document.getElementById('headerBgInp').value = config.headerBg || '#ffffff';
             document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
 
-            // Populate Firebase Setup inputs with default/saved values
-            document.getElementById('fbApiKey').value = config.fbApiKey || 'AIzaSyDRnw3mMT5WgslhRTEL3cIQ43mV7I2Xnto';
-            document.getElementById('fbAuthDomain').value = config.fbAuthDomain || 'cs-academy-27314.firebaseapp.com';
-            document.getElementById('fbDbUrl').value = config.fbDbUrl || 'https://cs-academy-27314-default-rtdb.firebaseio.com';
-            document.getElementById('fbProjectId').value = config.fbProjectId || 'cs-academy-27314';
+            // Populate Firebase Setup inputs
+            document.getElementById('fbApiKey').value = config.fbApiKey || '';
+            document.getElementById('fbAuthDomain').value = config.fbAuthDomain || '';
+            document.getElementById('fbDbUrl').value = config.fbDbUrl || '';
+            document.getElementById('fbProjectId').value = config.fbProjectId || '';
 
             students = await db.students.toArray();
 
@@ -342,53 +336,26 @@
         }
     }
 
-    // 🚀 FIXED & STABLE SCANNER FUNCTION
-    async function toggleScanner() {
+    function toggleScanner() {
         const box = document.getElementById('scanner-area');
-        
         if (box.style.display === 'block') {
-            if (html5QrCode) {
-                try {
-                    await html5QrCode.stop();
-                    html5QrCode.clear();
-                } catch (err) {
-                    console.log("Scanner stopping gracefully...", err);
-                }
-            }
-            box.style.display = 'none';
-            return;
-        }
-
-        box.style.display = 'block';
-
-        if (!html5QrCode) {
+            html5QrCode.stop().then(() => { box.style.display = 'none'; });
+        } else {
+            box.style.display = 'block';
             html5QrCode = new Html5Qrcode("reader");
-        }
+            html5QrCode.start({ facingMode: "environment" }, { fps: 15, qrbox: 250 }, async (id) => {
+                const day = new Date().getDate();
+                const key = `${config.m}-${day}-${id.trim()}`;
+                if(students.some(s => s.id === id.trim()) && !records[key]) {
+                    records[key] = true;
+                    await db.records.put({ key: key, val: true });
+                    
+                    // Firebase Live Sync
+                    if(firebaseDB) firebaseDB.ref('records/' + key).set(true);
 
-        const configScan = { fps: 15, qrbox: { width: 250, height: 250 } };
-
-        try {
-            await html5QrCode.start(
-                { facingMode: "environment" }, 
-                configScan, 
-                async (id) => {
-                    const day = new Date().getDate();
-                    const key = `${config.m}-${day}-${id.trim()}`;
-                    if(students.some(s => s.id === id.trim()) && !records[key]) {
-                        records[key] = true;
-                        await db.records.put({ key: key, val: true });
-                        
-                        // Firebase Live Sync
-                        if(firebaseDB) firebaseDB.ref('records/' + key).set(true);
-
-                        drawTable();
-                        alert("✅ Attendance Marked Successfully!");
-                    }
+                    drawTable();
                 }
-            );
-        } catch (err) {
-            alert("⚠️ Camera Access Error!\nPlease allow camera permissions in browser site settings.\nDetails: " + err);
-            box.style.display = 'none';
+            });
         }
     }
 
