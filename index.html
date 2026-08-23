@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS Academy Pro - Firebase & IndexedDB Attendance System</title>
+    <title>CS Academy Pro - IndexedDB Stable Attendance System</title>
     
     <!-- External Libraries -->
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -12,10 +12,6 @@
     
     <!-- Dexie.js (Stable Wrapper for IndexedDB) -->
     <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
-
-    <!-- 🌐 FIREBASE COMPAT LIBRARIES (v10.8.0) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
     <style>
         :root { --primary: #1e3a8a; --accent: #2563eb; --bg: #0f172a; }
@@ -65,21 +61,9 @@
 
 <div class="main-card">
     <div class="header"><h2>CS ACADEMY - KASHIF KHAN</h2></div>
-    <div id="status" class="status-badge">🔥 Firebase Cloud Sync & Dexie IndexedDB Active</div>
+    <div id="status" class="status-badge">💾 IndexedDB Database Active (Dexie Engine)</div>
 
     <div id="temp-qr-box"></div>
-
-    <!-- 🔥 FIREBASE CONFIGURATION SETUP PANEL -->
-    <div class="brand-upload-section" style="border: 2px solid #f59e0b; background: #1e1b4b;">
-        <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #fbbf24;">🔥 Firebase Database Configuration Settings:</div>
-        <div class="inp-grid">
-            <input type="text" id="fbApiKey" placeholder="API Key">
-            <input type="text" id="fbAuthDomain" placeholder="Auth Domain (your-app.firebaseapp.com)">
-            <input type="text" id="fbDbUrl" placeholder="Database URL (https://your-app.firebaseio.com)">
-            <input type="text" id="fbProjectId" placeholder="Project ID">
-        </div>
-        <button class="btn btn-green" onclick="saveFirebaseConfig()" style="margin-top: 2px; padding: 8px;">🔥 Save & Connect Firebase</button>
-    </div>
 
     <!-- Customization Options -->
     <div class="brand-upload-section">
@@ -127,7 +111,7 @@
         <button class="btn btn-blue" style="background:#6366f1;" onclick="downloadSelectedHDQRs()">📥 Download Selected Photo-Cards</button>
     </div>
 
-    <button class="btn btn-red" onclick="resetSystem()">⚠️ Reset All Data (Clear Storage)</button>
+    <button class="btn btn-red" onclick="resetSystem()">⚠️ Reset All Data (Clear IndexedDB Storage)</button>
 
     <div id="capture-sheet"></div>
     <div id="capture-qrs">
@@ -142,6 +126,7 @@
     // --------------------------------------------------
     const db = new Dexie("CS_Academy_Persistent_DB");
     
+    // Define Database Schema
     db.version(1).stores({
         students: 'id, name, father, roll',
         records: 'key, val',
@@ -150,73 +135,17 @@
 
     let students = [];
     let records = {};
-    let config = { c: '', p: '', s: '', m: '', logo: '', principal: '', sig: '', sigTitle: '', link: '', titleColor: '#000000', headerBg: '#ffffff', fbApiKey: '', fbAuthDomain: '', fbDbUrl: '', fbProjectId: '' };
+    let config = { c: '', p: '', s: '', m: '', logo: '', principal: '', sig: '', sigTitle: '', link: '', titleColor: '#000000', headerBg: '#ffffff' };
     let html5QrCode;
     let cachedFooterQrDataUrl = "";
-    let firebaseDB = null;
 
     window.onload = async () => {
         await loadAllFromIndexedDB();
-        initFirebaseConnection();
     };
-
-    function initFirebaseConnection() {
-        if (config.fbApiKey && config.fbDbUrl) {
-            try {
-                if (!firebase.apps.length) {
-                    firebase.initializeApp({
-                        apiKey: config.fbApiKey,
-                        authDomain: config.fbAuthDomain,
-                        databaseURL: config.fbDbUrl,
-                        projectId: config.fbProjectId
-                    });
-                }
-                firebaseDB = firebase.database();
-                console.log("🔥 Firebase Connected Successfully!");
-                syncWithFirebaseCloud();
-            } catch (err) {
-                console.error("Firebase Init Error:", err);
-            }
-        }
-    }
-
-    async function saveFirebaseConfig() {
-        config.fbApiKey = document.getElementById('fbApiKey').value.trim();
-        config.fbAuthDomain = document.getElementById('fbAuthDomain').value.trim();
-        config.fbDbUrl = document.getElementById('fbDbUrl').value.trim();
-        config.fbProjectId = document.getElementById('fbProjectId').value.trim();
-
-        await db.config.put({ id: 'app_config', data: config });
-        initFirebaseConnection();
-        alert("🔥 Firebase Configuration Saved & Connected!");
-    }
-
-    function syncWithFirebaseCloud() {
-        if (!firebaseDB) return;
-
-        // Fetch students online
-        firebaseDB.ref('students').on('value', async (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                students = Object.values(data);
-                for (let st of students) { await db.students.put(st); }
-                drawTable();
-            }
-        });
-
-        // Fetch attendance records online
-        firebaseDB.ref('records').on('value', async (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                records = data;
-                for (let k in records) { await db.records.put({ key: k, val: records[k] }); }
-                drawTable();
-            }
-        });
-    }
 
     async function loadAllFromIndexedDB() {
         try {
+            // Load Config
             const savedCfg = await db.config.get('app_config');
             if (savedCfg && savedCfg.data) {
                 config = savedCfg.data;
@@ -231,14 +160,10 @@
             document.getElementById('headerBgInp').value = config.headerBg || '#ffffff';
             document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
 
-            // Populate Firebase Setup inputs
-            document.getElementById('fbApiKey').value = config.fbApiKey || '';
-            document.getElementById('fbAuthDomain').value = config.fbAuthDomain || '';
-            document.getElementById('fbDbUrl').value = config.fbDbUrl || '';
-            document.getElementById('fbProjectId').value = config.fbProjectId || '';
-
+            // Load Students
             students = await db.students.toArray();
 
+            // Load Records
             const recArr = await db.records.toArray();
             records = {};
             recArr.forEach(item => { records[item.key] = item.val; });
@@ -260,11 +185,6 @@
         config.m = document.getElementById('monthInp').value;
         
         await db.config.put({ id: 'app_config', data: config });
-        
-        if(firebaseDB) {
-            firebaseDB.ref('config').set(config);
-        }
-
         generateFooterQRDataUrl(() => { drawTable(); });
     }
 
@@ -330,7 +250,6 @@
                 else if (type === 'sig') config.sig = base64Img;
 
                 await db.config.put({ id: 'app_config', data: config });
-                if(firebaseDB) firebaseDB.ref('config').set(config);
                 drawTable();
             });
         }
@@ -349,10 +268,6 @@
                 if(students.some(s => s.id === id.trim()) && !records[key]) {
                     records[key] = true;
                     await db.records.put({ key: key, val: true });
-                    
-                    // Firebase Live Sync
-                    if(firebaseDB) firebaseDB.ref('records/' + key).set(true);
-
                     drawTable();
                 }
             });
@@ -381,18 +296,14 @@
 
         if (idx >= 0) {
             const oldId = students[idx].id;
-            if (oldId !== id) {
-                await db.students.delete(oldId);
-                if(firebaseDB) firebaseDB.ref('students/' + oldId).remove();
-            }
+            if (oldId !== id) await db.students.delete(oldId);
             students[idx] = stObj;
         } else {
             students.push(stObj);
         }
         
-        // Save to IndexedDB & Firebase Database
+        // Direct IndexedDB Save
         await db.students.put(stObj);
-        if(firebaseDB) firebaseDB.ref('students/' + id).set(stObj);
 
         document.getElementById('editIndex').value = "-1";
         document.getElementById('stN').value = ''; 
@@ -422,7 +333,6 @@
             const deletedId = students[idx].id;
             students.splice(idx, 1);
             await db.students.delete(deletedId);
-            if(firebaseDB) firebaseDB.ref('students/' + deletedId).remove();
             drawTable();
         }
     }
@@ -464,6 +374,7 @@
     }
 
     function renderTableHTML(forDownload = false) {
+        // 🔢 SORTING ROLL NUMBERS NUMERICALLY (1, 2, 3 ... 10, 11 ... 40)
         students.sort((a, b) => (parseInt(a.roll) || 0) - (parseInt(b.roll) || 0));
 
         const [year, month] = (config.m || new Date().toISOString().slice(0, 7)).split('-').map(Number);
@@ -589,9 +500,8 @@
     }
 
     async function resetSystem() {
-        if(confirm("⚠️ WARNING: This will PERMANENTLY DELETE ALL DATA. Are you sure?")) {
+        if(confirm("⚠️ WARNING: This will PERMANENTLY DELETE ALL DATA in IndexedDB storage. Are you sure?")) {
             await db.delete();
-            if(firebaseDB) firebaseDB.ref().remove();
             location.reload();
         }
     }
