@@ -137,6 +137,9 @@
 </div>
 
 <script>
+    // --------------------------------------------------
+    // 📦 INDEXEDB DATABASE SETUP VIA DEXIE.JS
+    // --------------------------------------------------
     const db = new Dexie("CS_Academy_Persistent_DB");
     
     db.version(1).stores({
@@ -197,6 +200,7 @@
     function syncWithFirebaseCloud() {
         if (!firebaseDB) return;
 
+        // Fetch students online
         firebaseDB.ref('students').on('value', async (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -206,6 +210,7 @@
             }
         });
 
+        // Fetch attendance records online
         firebaseDB.ref('records').on('value', async (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -232,6 +237,7 @@
             document.getElementById('headerBgInp').value = config.headerBg || '#ffffff';
             document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
 
+            // Populate Firebase Setup inputs with default/saved values
             document.getElementById('fbApiKey').value = config.fbApiKey || 'AIzaSyDRnw3mMT5WgslhRTEL3cIQ43mV7I2Xnto';
             document.getElementById('fbAuthDomain').value = config.fbAuthDomain || 'cs-academy-27314.firebaseapp.com';
             document.getElementById('fbDbUrl').value = config.fbDbUrl || 'https://cs-academy-27314-default-rtdb.firebaseio.com';
@@ -336,7 +342,7 @@
         }
     }
 
-    // 🌐 UNIVERSAL AUTO-PERMISSION SCANNER FOR CHROME & ALL BROWSERS
+    // 🌐 UNIVERSAL AUTO-CAMERA SCANNER (Direct Launch for All Browsers)
     async function toggleScanner() {
         const box = document.getElementById('scanner-area');
         
@@ -346,7 +352,7 @@
                     await html5QrCode.stop();
                     html5QrCode.clear();
                 } catch (err) {
-                    console.log("Scanner stopped", err);
+                    console.log("Scanner stopped.", err);
                 }
             }
             box.style.display = 'none';
@@ -359,36 +365,51 @@
             html5QrCode = new Html5Qrcode("reader");
         }
 
+        const configScan = { fps: 15, qrbox: { width: 250, height: 250 } };
+
         const onScanSuccess = async (id) => {
             const day = new Date().getDate();
             const key = `${config.m}-${day}-${id.trim()}`;
-            if(students.some(s => s.id === id.trim()) && !records[key]) {
+            if (students.some(s => s.id === id.trim()) && !records[key]) {
                 records[key] = true;
                 await db.records.put({ key: key, val: true });
-                if(firebaseDB) firebaseDB.ref('records/' + key).set(true);
+                
+                if (firebaseDB) firebaseDB.ref('records/' + key).set(true);
+
                 drawTable();
                 alert("✅ Attendance Marked Successfully!");
             }
         };
 
-        const configScan = { fps: 15, qrbox: { width: 250, height: 250 } };
-
-        // Attempt 1: Direct facingMode
+        // 1. Try Environment (Back) Camera via strict MediaTrack constraints
         try {
-            await html5QrCode.start({ facingMode: "environment" }, configScan, onScanSuccess);
+            await html5QrCode.start(
+                { facingMode: { exact: "environment" } },
+                configScan,
+                onScanSuccess
+            );
         } catch (e1) {
-            // Attempt 2: Fallback for Chrome Camera Device ID
+            // 2. Fallback to soft environment or default camera (Fixes Chrome/Android strict restrictions)
             try {
-                const devices = await Html5Qrcode.getCameras();
-                if (devices && devices.length) {
-                    const backCam = devices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('rear')) || devices[devices.length - 1];
-                    await html5QrCode.start(backCam.id, configScan, onScanSuccess);
-                } else {
-                    throw new Error("No cameras found");
-                }
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    configScan,
+                    onScanSuccess
+                );
             } catch (e2) {
-                alert("⚠️ Please allow Camera Access when prompted by Chrome!");
-                box.style.display = 'none';
+                // 3. Fallback to any available system camera
+                try {
+                    const devices = await Html5Qrcode.getCameras();
+                    if (devices && devices.length > 0) {
+                        const cameraId = devices[devices.length - 1].id; // Pick back camera if multiple
+                        await html5QrCode.start(cameraId, configScan, onScanSuccess);
+                    } else {
+                        throw new Error("No cameras found on device.");
+                    }
+                } catch (e3) {
+                    alert("⚠️ Camera Access Denied or Not Found!\nPlease allow camera permissions in browser pop-up.");
+                    box.style.display = 'none';
+                }
             }
         }
     }
@@ -424,6 +445,7 @@
             students.push(stObj);
         }
         
+        // Save to IndexedDB & Firebase Database
         await db.students.put(stObj);
         if(firebaseDB) firebaseDB.ref('students/' + id).set(stObj);
 
