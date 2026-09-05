@@ -254,7 +254,7 @@
     let records = {};
     let isPro = false;
     let config = { 
-        clientId: 'default_client',
+        clientId: localStorage.getItem('active_client_id') || 'GDC BARKHALOZAI DISTRICT BAJAUR',
         proKey: '',
         c: '', p: '', s: '', m: '', logo: '', principal: '', sig: '', sigTitle: '', link: '', titleColor: '#000000', headerBg: '#e2e8f0',
         waLang: 'pashto',
@@ -288,17 +288,61 @@
                 firebaseDB = firebase.database();
                 trackSystemUsage();
                 syncWithFirebaseCloud();
+                fetchClientFullDataCloud(config.clientId);
             } catch (err) {
                 console.error("Firebase Init Error:", err);
             }
         }
     }
 
+    // 🚀 NEW FEATURE: Fetch Config and Students Simultaneously from Firebase Cloud
+    async function fetchClientFullDataCloud(cId) {
+        if (!firebaseDB || !cId) return;
+        const dbRef = firebaseDB.ref(`clients/${cId}`);
+        dbRef.once('value', async (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                // 1. Sync Config Data
+                if (data.config) {
+                    config = { ...config, ...data.config };
+                    await db.config.put({ id: 'app_config', data: config });
+                    applyConfigUI();
+                }
+                // 2. Sync Students Data
+                if (data.students) {
+                    const studentArray = Array.isArray(data.students) ? data.students : Object.values(data.students);
+                    students = studentArray;
+                    for (let st of students) { await db.students.put(st); }
+                }
+                // 3. Sync Records Data
+                if (data.records) {
+                    records = data.records;
+                    for (let k in records) { await db.records.put({ key: k, val: records[k] }); }
+                }
+                drawTable();
+            }
+        });
+    }
+
+    function applyConfigUI() {
+        document.getElementById('clientIdInp').value = config.clientId || '';
+        document.getElementById('proKeyInp').value = config.proKey || '';
+        document.getElementById('classInp').value = config.c || '';
+        document.getElementById('profInp').value = config.p || '';
+        document.getElementById('subInp').value = config.s || '';
+        document.getElementById('sigTitleInp').value = config.sigTitle || '';
+        document.getElementById('footerLinkInp').value = config.link || '';
+        document.getElementById('titleColorInp').value = config.titleColor || '#000000';
+        document.getElementById('headerBgInp').value = config.headerBg || '#e2e8f0';
+        document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
+        document.getElementById('waLangSelect').value = config.waLang || 'pashto';
+        document.getElementById('rowsPerPageSelect').value = config.rowsPerPage || 15;
+    }
+
     function verifyProLicense() {
         const key = document.getElementById('proKeyInp').value.trim();
         config.proKey = key;
         
-        // Simple SaaS License Key Rule (Can be verified via Cloud)
         if (key === "PRO-CSACADEMY-2026" || key.startsWith("PRO-")) {
             isPro = true;
             document.getElementById('planBadge').innerText = "PRO UNLIMITED";
@@ -336,7 +380,7 @@
 
         await db.config.put({ id: 'app_config', data: config });
         initFirebaseConnection();
-        alert("🔥 Firebase SaaS Configuration Saved!");
+        alert("🔥 Firebase SaaS Configuration Saved & Connected!");
     }
 
     function syncWithFirebaseCloud() {
@@ -367,18 +411,7 @@
             const savedCfg = await db.config.get('app_config');
             if (savedCfg && savedCfg.data) { config = { ...config, ...savedCfg.data }; }
             
-            document.getElementById('clientIdInp').value = config.clientId || 'default_client';
-            document.getElementById('proKeyInp').value = config.proKey || '';
-            document.getElementById('classInp').value = config.c || '';
-            document.getElementById('profInp').value = config.p || '';
-            document.getElementById('subInp').value = config.s || '';
-            document.getElementById('sigTitleInp').value = config.sigTitle || '';
-            document.getElementById('footerLinkInp').value = config.link || '';
-            document.getElementById('titleColorInp').value = config.titleColor || '#000000';
-            document.getElementById('headerBgInp').value = config.headerBg || '#e2e8f0';
-            document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
-            document.getElementById('waLangSelect').value = config.waLang || 'pashto';
-            document.getElementById('rowsPerPageSelect').value = config.rowsPerPage || 15;
+            applyConfigUI();
 
             document.getElementById('fbApiKey').value = config.fbApiKey || 'AIzaSyDRnw3mMT5WgslhRTEL3cIQ43mV7I2Xnto';
             document.getElementById('fbAuthDomain').value = config.fbAuthDomain || 'cs-academy-27314.firebaseapp.com';
@@ -399,6 +432,8 @@
 
     async function syncCfg() {
         config.clientId = document.getElementById('clientIdInp').value.trim() || 'default_client';
+        localStorage.setItem('active_client_id', config.clientId);
+        
         config.c = document.getElementById('classInp').value.trim();
         config.p = document.getElementById('profInp').value.trim();
         config.s = document.getElementById('subInp').value.trim();
@@ -487,7 +522,7 @@
         const onScanSuccess = async (id) => {
             const day = new Date().getDate();
             const key = `${config.m}-${day}-${id.trim()}`;
-            const st = students.find(s => s.id === id.trim());
+            const st = students.find(s => s.id === id.trim() || s.roll === id.trim());
             const cId = config.clientId || 'default_client';
             
             if(st && !records[key]) {
