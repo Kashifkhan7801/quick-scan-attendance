@@ -15,11 +15,15 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Added ExcelJS & FileSaver Libraries for Direct .xlsx Image Export Support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/file-saver/2.0.5/FileSaver.min.js"></script>
 
     <style>
         :root { --primary: #1e3a8a; --accent: #2563eb; --bg: #0f172a; --gold: #f59e0b; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: white; margin: 0; padding: 10px; }
-        .main-card { background: #1e293b; padding: 20px; border-radius: 15px; max-width: 1250px; margin: auto; border: 1px solid #334155; }
+        .main-card { background: #1e293b; padding: 20px; border-radius: 15px; max-width: 1350px; margin: auto; border: 1px solid #334155; }
         
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); margin-bottom: 20px; padding-bottom: 10px; }
         .inp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px; }
@@ -35,21 +39,91 @@
         .portal-card-result { background: #0f172a; border-radius: 8px; padding: 12px; margin-top: 10px; border: 1px solid #475569; display: none; }
 
         .table-display { background: white; color: black; padding: 10px; border-radius: 8px; overflow-x: auto; margin-top: 15px; width: 100%; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; border: 1px solid #000; }
-        th, td { border: 1px solid #000; padding: 4px 2px; text-align: center; font-size: 11px; font-weight: bold; }
-        th { background: #f1f5f9; }
+        
+        table { width: 100% !important; border-collapse: collapse !important; border: 1px solid #000000 !important; table-layout: auto !important; background-color: #ffffff !important; }
+        th, td { border: 1px solid #000000 !important; padding: 4px 2px; text-align: center; font-size: 11px; font-weight: bold; white-space: nowrap !important; vertical-align: middle !important; color: #000000 !important; }
+        
+        .col-roll { width: 45px !important; min-width: 45px !important; text-align: center !important; }
+        .col-name { min-width: 140px !important; text-align: left !important; padding-left: 5px !important; }
+        .col-father { min-width: 130px !important; text-align: left !important; padding-left: 5px !important; }
+        
+        .th-sunday { background-color: #fef3c7 !important; color: #b45309 !important; }
+        .td-sunday { background-color: #fef3c7 !important; color: #d97706 !important; font-weight: bold; }
+        .td-leave { background-color: #e0f2fe !important; color: #0284c7 !important; font-weight: bold; }
 
-        .action-btn { padding: 2px 5px; font-size: 10px; border: none; border-radius: 3px; cursor: pointer; color: white; margin-left: 2px; }
+        .action-btn { padding: 3px 5px; font-size: 10px; border: none; border-radius: 4px; cursor: pointer; color: white; margin-left: 2px; display: inline-block; line-height: 1; }
         .btn-edit { background: #f59e0b; }
         .btn-del { background: #ef4444; }
         .btn-wa { background: #25d366; }
+        .btn-leave { background: #0284c7; }
 
-        #capture-sheet { display: none; }
-        #capture-qrs { background: white; color: black; padding: 40px; width: 850px; position: absolute; left: -9999px; }
+        .action-buttons-cell { display: inline-flex !important; align-items: center !important; gap: 2px !important; margin-left: 6px !important; vertical-align: middle !important; }
+        .day-header { min-width: 18px; width: 18px; white-space: nowrap !important; }
+
+        #capture-sheet { display: block; position: absolute; left: -99999px; top: 0; background: #ffffff !important; color: #000000 !important; padding: 10px; width: 1400px !important; box-sizing: border-box; }
+        #qr-print-container { display: none; background: white; color: black; padding: 0; margin: 0; }
         
-        .qr-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-        .qr-card { border: 3px solid #000; padding: 20px; text-align: center; background: white; border-radius: 10px; min-height: 440px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .st-photo { width: 130px; height: 150px; border: 2px solid #000; margin-bottom: 10px; object-fit: cover; border-radius: 4px; }
+        .qr-page { 
+            width: 210mm; 
+            height: 290mm; 
+            box-sizing: border-box; 
+            padding: 5mm; 
+            display: grid; 
+            grid-template-columns: repeat(2, 95mm); 
+            grid-template-rows: repeat(4, 65mm); 
+            gap: 4mm; 
+            justify-content: center;
+            align-content: start;
+            margin: 0 auto;
+            page-break-after: always;
+            page-break-inside: avoid;
+        }
+
+        .qr-card-item { 
+            width: 95mm;
+            height: 64mm;
+            border: 1.5px solid var(--primary); 
+            padding: 3mm; 
+            text-align: center; 
+            background: #fff; 
+            border-radius: 6px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: space-between; 
+            box-sizing: border-box; 
+            position: relative; 
+            overflow: hidden;
+        }
+
+        .qr-card-header { 
+            font-size: 7.5pt; 
+            font-weight: bold; 
+            color: var(--primary); 
+            text-transform: uppercase; 
+            border-bottom: 1.5px solid var(--primary); 
+            width: 100%; 
+            padding-bottom: 2px; 
+            margin-bottom: 2px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 4px; 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.1;
+        }
+
+        .qr-card-header-title { flex-grow: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+        .qr-card-logo { height: 20px; width: 20px; object-fit: contain; flex-shrink: 0; }
+        .qr-card-body { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 5px; flex-grow: 1; margin: 2px 0; }
+        .st-photo-box { width: 22mm; height: 28mm; border: 1px solid #333; object-fit: cover; border-radius: 3px; background: #f8fafc; flex-shrink: 0; }
+        .qr-code-box { width: 24mm; height: 24mm; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        .qr-code-box img, .qr-code-box canvas { width: 24mm !important; height: 24mm !important; }
+        
+        .qr-card-details { text-align: left; flex-grow: 1; font-size: 7.5pt; line-height: 1.3; font-weight: 600; color: #1e293b; padding: 0 2px; overflow: hidden; }
+        .qr-card-footer { text-align: center; width: 100%; border-top: 1px solid #cbd5e1; padding-top: 2px; font-size: 6pt; color: #475569; font-weight: bold; }
 
         .btn { padding: 10px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; text-transform: uppercase; font-size: 12px; }
         .btn-blue { background: var(--accent); }
@@ -68,21 +142,105 @@
         .pro-badge { background: linear-gradient(45deg, #f59e0b, #d97706); color: black; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 8px; }
 
         @media print {
-            @page { size: A4 landscape; margin: 4mm 5mm; }
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-            html, body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; font-family: 'Segoe UI', Arial, sans-serif !important; }
-            .main-card, .dashboard-grid, .portal-box, .brand-upload-section, .inp-grid, button, #status, #scanner-area, .table-display, #capture-qrs { display: none !important; }
-            #capture-sheet { display: block !important; position: static !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
-            .print-page { page-break-after: always !important; page-break-inside: avoid !important; display: block !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
-            .print-page:last-child { page-break-after: auto !important; }
-            .print-header-box { border-radius: 4px !important; border: 1.5px solid #000 !important; }
-            table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; margin-top: 4px !important; }
-            th, td { border: 1px solid #000 !important; font-size: 9px !important; padding: 3px 1px !important; text-align: center !important; font-weight: bold !important; }
-            th { background-color: #f1f5f9 !important; }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                box-sizing: border-box !important;
+            }
+            html, body { 
+                background: white !important; 
+                color: black !important; 
+                padding: 0 !important; 
+                margin: 0 !important; 
+                width: 100% !important; 
+                height: 100% !important; 
+            }
+            .main-card, .dashboard-grid, .portal-box, .brand-upload-section, .inp-grid, button, #status, #scanner-area, .table-display { display: none !important; }
+
+            body.print-mode-sheet #capture-sheet { 
+                display: block !important; 
+                position: static !important; 
+                width: 100% !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+            }
+            body.print-mode-qr #qr-print-container { display: block !important; position: static !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
+            
+            .print-header-box {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                border-radius: 3px !important; 
+                border: 1px solid #000 !important; 
+                padding: 3px 6px !important; 
+                width: 100% !important; 
+                margin-bottom: 2px !important; 
+                box-sizing: border-box !important;
+            }
+
+            .qr-page { 
+                page-break-after: always !important; 
+                page-break-inside: avoid !important; 
+                margin: 0 auto !important; 
+                padding: 4mm !important;
+                height: 290mm !important;
+                box-sizing: border-box !important;
+            }
+            .qr-page:last-child { page-break-after: avoid !important; }
+
+            .print-page { 
+                page-break-after: always !important; 
+                page-break-inside: avoid !important; 
+                display: flex !important; 
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                width: 100% !important; 
+                padding: 2mm !important; 
+                margin: 0 !important; 
+                box-sizing: border-box !important;
+            }
+            .print-page:last-child { page-break-after: avoid !important; }
+
+            table { 
+                width: 100% !important; 
+                border-collapse: collapse !important; 
+                table-layout: auto !important; 
+                margin-top: 1px !important; 
+                margin-bottom: 2px !important; 
+                border: 1px solid #000 !important;
+            }
+            
+            th, td { 
+                border: 1px solid #000 !important; 
+                font-size: 8px !important; 
+                padding: 2px 1px !important; 
+                text-align: center !important; 
+                font-weight: bold !important; 
+                white-space: nowrap !important; 
+                line-height: 1 !important; 
+            }
+            
+            tr th:first-child, tr td:first-child { border-left: 1px solid #000 !important; }
+            tr th:last-child, tr td:last-child { border-right: 1px solid #000 !important; }
+
             .status-p { color: #059669 !important; font-weight: bold !important; }
             .status-a { color: #dc2626 !important; font-weight: normal !important; opacity: 0.3; }
-            .print-footer-container { margin-top: 10px !important; page-break-inside: avoid !important; }
+            .status-l { color: #0284c7 !important; font-weight: bold !important; background-color: #e0f2fe !important; }
+            .status-sun { color: #d97706 !important; font-weight: bold !important; background-color: #fef3c7 !important; }
+            
+            .print-footer-container { 
+                margin-top: 4px !important; 
+                padding: 2px 4px !important; 
+                page-break-inside: avoid !important; 
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: flex-end !important;
+                width: 100% !important;
+            }
         }
+    </style>
+
+    <style id="dynamic-print-style">
+        @page { size: A4 landscape; margin: 3mm; }
     </style>
 </head>
 <body>
@@ -97,10 +255,8 @@
     </div>
 
     <div id="status" class="status-badge">✅ Connected: Client Isolated Cloud System Active</div>
-
     <div id="temp-qr-box"></div>
 
-    <!-- 🔑 PRO SUBSCRIPTION & CLIENT ISOLATION SETTINGS -->
     <div class="brand-upload-section" style="border: 2px solid #f59e0b; background: #0f172a;">
         <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #fbbf24; display:flex; justify-content:space-between;">
             <span>🔑 Global Organization License & Pro Subscription:</span>
@@ -122,7 +278,6 @@
         </div>
     </div>
 
-    <!-- STUDENT ONLINE PORTAL -->
     <div class="portal-box">
         <div style="font-size: 14px; font-weight: bold; color: #a5b4fc; margin-bottom: 6px;">🎓 Student Online Attendance Portal:</div>
         <div class="inp-grid" style="margin-bottom:0;">
@@ -132,7 +287,6 @@
         <div id="portalResult" class="portal-card-result"></div>
     </div>
 
-    <!-- FIREBASE CONFIGURATION PANEL -->
     <div class="brand-upload-section" style="border: 1px solid #3b82f6; background: #1e1b4b;">
         <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #60a5fa;">🔥 Firebase Database Connection:</div>
         <div class="inp-grid">
@@ -144,7 +298,6 @@
         <button class="btn btn-green" onclick="saveFirebaseConfig()" style="padding: 8px;">🔥 Save & Connect Firebase Cloud</button>
     </div>
 
-    <!-- Customization Options -->
     <div class="brand-upload-section">
         <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #38bdf8;">🎨 Branding & Customization Settings:</div>
         <div class="inp-grid">
@@ -153,8 +306,8 @@
             <div style="font-size: 11px;">Upload Signature: <input type="file" id="sigInp" accept="image/*" onchange="uploadBrandImage('sig')"></div>
         </div>
         <div class="inp-grid">
-            <div>Title Text Color: <input type="color" id="titleColorInp" class="color-inp" value="#000000" onchange="syncCfg()"></div>
-            <div>Header Background Color: <input type="color" id="headerBgInp" class="color-inp" value="#e2e8f0" onchange="syncCfg()"></div>
+            <div>Title Text Color: <input type="color" id="titleColorInp" class="color-inp" value="#ffffff" onchange="syncCfg()"></div>
+            <div>Header Background Color: <input type="color" id="headerBgInp" class="color-inp" value="#1e3a8a" onchange="syncCfg()"></div>
             <input type="text" id="sigTitleInp" placeholder="Signature Title (e.g. Principal)" oninput="syncCfg()">
             <input type="text" id="footerLinkInp" placeholder="Verification Link for QR" oninput="syncCfg()">
         </div>
@@ -170,9 +323,11 @@
             <div>
                 <label style="font-size:11px; color:#cbd5e1;">Students Per Page (PDF Print):</label>
                 <select id="rowsPerPageSelect" onchange="syncCfg()">
-                    <option value="15">15 Students / Page (Recommended)</option>
+                    <option value="15">15 Students / Page</option>
                     <option value="20">20 Students / Page</option>
                     <option value="25">25 Students / Page</option>
+                    <option value="30">30 Students / Page</option>
+                    <option value="40">40 Students / Page</option>
                     <option value="10">10 Students / Page</option>
                     <option value="1000">All Students in 1 Page</option>
                 </select>
@@ -180,7 +335,6 @@
         </div>
     </div>
 
-    <!-- Header Info -->
     <div class="inp-grid">
         <input type="text" id="classInp" placeholder="Institution / Class Name" oninput="syncCfg()">
         <input type="text" id="profInp" placeholder="Instructor / Supervisor" oninput="syncCfg()">
@@ -191,7 +345,6 @@
     <button class="btn btn-cam" onclick="toggleScanner()">📸 Open Camera Scanner</button>
     <div id="scanner-area"><div id="reader"></div></div>
 
-    <!-- ANALYTICS DASHBOARD & EXCEL TOOLS -->
     <div class="dashboard-grid">
         <div class="chart-box">
             <h4 style="margin:0 0 10px 0; color:#38bdf8;">📊 Student Attendance Analytics Dashboard</h4>
@@ -201,7 +354,12 @@
         <div class="chart-box" style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
             <h4 style="margin:0 0 5px 0; color:#4ade80;">📊 Excel, Backup & Print Tools</h4>
             <button class="btn btn-green" onclick="exportToExcel()">📊 Export Attendance Sheet (Excel)</button>
-            <button class="btn btn-blue" onclick="printOfficialSheet()">🖨️ Print Direct A4 PDF (Landscape)</button>
+            
+            <div style="display:flex; gap:5px;">
+                <button class="btn btn-blue" onclick="printOfficialSheet('portrait')">📄 Print Full Portrait PDF</button>
+                <button class="btn btn-purple" onclick="printOfficialSheet('landscape')">🖼️ Print Full Landscape PDF</button>
+            </div>
+
             <button class="btn btn-gold" onclick="backupJSONData()">💾 Cloud JSON Backup Export</button>
             <div style="font-size:11px; margin-top:5px; color:#cbd5e1;">Import Students via Excel (.xlsx / .csv):</div>
             <input type="file" id="excelImportInp" accept=".xlsx, .xls, .csv" style="font-size:11px;">
@@ -209,9 +367,8 @@
         </div>
     </div>
 
-    <!-- Student Registration Form -->
     <div class="inp-grid" style="margin-top:15px; background: #1e293b; padding: 12px; border-radius: 10px; border:1px solid #334155;">
-        <input type="hidden" id="editIndex" value="-1">
+        <input type="hidden" id="editStudentId" value="">
         <input type="text" id="stN" placeholder="Student Name">
         <input type="text" id="stF" placeholder="Father's Name">
         <input type="text" id="stR" placeholder="Roll No / ID">
@@ -221,26 +378,20 @@
         <button class="btn btn-green" id="addBtn" onclick="addOrUpdateStudent()">+ Add Student</button>
     </div>
 
-    <!-- Main Active Table View -->
     <div class="table-display"><div id="table-content"></div></div>
 
     <div class="inp-grid" style="margin-top:20px;">
-        <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'Full_Attendance_Sheet')">🖼️ Download Full HD Image</button>
-        <button class="btn btn-green" onclick="printSelectedStudentsSheet()">🖨️ Print Selected Students (Page Safe)</button>
-        <button class="btn btn-purple" onclick="downloadSelectedHDQRs()">📥 Download Selected Photo Cards</button>
+        <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'Full_Attendance_Sheet')">🖼️ Download Clear Sheet Image</button>
+        <button class="btn btn-green" onclick="printSelectedStudentsSheet()">🖨️ Print Selected Sheet (Page Safe)</button>
+        <button class="btn btn-purple" onclick="printBatchQRCards(8)">🖨️ Print Official ID Cards (8 Cards / Page A4)</button>
         <button class="btn btn-green" style="background:#25d366; color:black;" onclick="sendWhatsAppBulkSelected()">💬 Send Custom WhatsApp Alert</button>
     </div>
 
     <button class="btn btn-red" onclick="resetSystem()">⚠️ Reset All Data (Clear Database)</button>
 </div>
 
-<!-- Print Render Engine Output Container -->
 <div id="capture-sheet"></div>
-
-<div id="capture-qrs">
-    <h2 style="text-align:center; border-bottom:3px solid #000; padding-bottom:10px; margin-bottom: 20px;">OFFICIAL ID CARDS</h2>
-    <div class="qr-grid" id="qrList"></div>
-</div>
+<div id="qr-print-container"></div>
 
 <script>
     const db = new Dexie("CS_Academy_Enterprise_DB");
@@ -253,10 +404,13 @@
     let students = [];
     let records = {};
     let isPro = false;
+    
+    const defaultCollegeName = "GOVERNMENT DEGREE COLLEGE BARKHALOZAI DISTRICT BAJAUR(BSCS)";
+    
     let config = { 
-        clientId: localStorage.getItem('active_client_id') || 'GDC BARKHALOZAI DISTRICT BAJAUR',
+        clientId: localStorage.getItem('active_client_id') || defaultCollegeName,
         proKey: '',
-        c: '', p: '', s: '', m: '', logo: '', principal: '', sig: '', sigTitle: '', link: '', titleColor: '#000000', headerBg: '#e2e8f0',
+        c: defaultCollegeName, p: '', s: '', m: '', logo: '', principal: '', sig: '', sigTitle: '', link: '', titleColor: '#ffffff', headerBg: '#1e3a8a',
         waLang: 'pashto',
         rowsPerPage: 15,
         fbApiKey: 'AIzaSyDRnw3mMT5WgslhRTEL3cIQ43mV7I2Xnto', 
@@ -268,6 +422,8 @@
     let cachedFooterQrDataUrl = "";
     let firebaseDB = null;
     let attendanceChartInstance = null;
+
+    const pashtoDaysNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     window.onload = async () => {
         await loadAllFromIndexedDB();
@@ -295,26 +451,28 @@
         }
     }
 
-    // 🚀 NEW FEATURE: Fetch Config and Students Simultaneously from Firebase Cloud
-    async function fetchClientFullDataCloud(cId) {
+    function sanitizeFirebaseKey(key) {
+        return key ? String(key).replace(/[.#$\[\]]/g, "_") : "default_key";
+    }
+
+    function fetchClientFullDataCloud(cId) {
         if (!firebaseDB || !cId) return;
-        const dbRef = firebaseDB.ref(`clients/${cId}`);
+        const safeCId = sanitizeFirebaseKey(cId);
+        const dbRef = firebaseDB.ref(`clients/${safeCId}`);
         dbRef.once('value', async (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                // 1. Sync Config Data
                 if (data.config) {
                     config = { ...config, ...data.config };
+                    if(!config.c) config.c = defaultCollegeName;
                     await db.config.put({ id: 'app_config', data: config });
                     applyConfigUI();
                 }
-                // 2. Sync Students Data
                 if (data.students) {
                     const studentArray = Array.isArray(data.students) ? data.students : Object.values(data.students);
                     students = studentArray;
                     for (let st of students) { await db.students.put(st); }
                 }
-                // 3. Sync Records Data
                 if (data.records) {
                     records = data.records;
                     for (let k in records) { await db.records.put({ key: k, val: records[k] }); }
@@ -325,15 +483,15 @@
     }
 
     function applyConfigUI() {
-        document.getElementById('clientIdInp').value = config.clientId || '';
+        document.getElementById('clientIdInp').value = config.clientId || defaultCollegeName;
         document.getElementById('proKeyInp').value = config.proKey || '';
-        document.getElementById('classInp').value = config.c || '';
+        document.getElementById('classInp').value = config.c || defaultCollegeName;
         document.getElementById('profInp').value = config.p || '';
         document.getElementById('subInp').value = config.s || '';
         document.getElementById('sigTitleInp').value = config.sigTitle || '';
         document.getElementById('footerLinkInp').value = config.link || '';
-        document.getElementById('titleColorInp').value = config.titleColor || '#000000';
-        document.getElementById('headerBgInp').value = config.headerBg || '#e2e8f0';
+        document.getElementById('titleColorInp').value = config.titleColor || '#ffffff';
+        document.getElementById('headerBgInp').value = config.headerBg || '#1e3a8a';
         document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
         document.getElementById('waLangSelect').value = config.waLang || 'pashto';
         document.getElementById('rowsPerPageSelect').value = config.rowsPerPage || 15;
@@ -362,7 +520,7 @@
 
     function trackSystemUsage() {
         if (!firebaseDB) return;
-        const cId = config.clientId || 'default_client';
+        const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
         firebaseDB.ref(`admin_tracking/clients/${cId}`).set({
             client_name: config.c || cId,
             last_active: new Date().toISOString(),
@@ -385,7 +543,7 @@
 
     function syncWithFirebaseCloud() {
         if (!firebaseDB) return;
-        const cId = config.clientId || 'default_client';
+        const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
 
         firebaseDB.ref(`clients/${cId}/students`).on('value', async (snapshot) => {
             const data = snapshot.val();
@@ -411,6 +569,7 @@
             const savedCfg = await db.config.get('app_config');
             if (savedCfg && savedCfg.data) { config = { ...config, ...savedCfg.data }; }
             
+            if(!config.c) config.c = defaultCollegeName;
             applyConfigUI();
 
             document.getElementById('fbApiKey').value = config.fbApiKey || 'AIzaSyDRnw3mMT5WgslhRTEL3cIQ43mV7I2Xnto';
@@ -431,10 +590,10 @@
     }
 
     async function syncCfg() {
-        config.clientId = document.getElementById('clientIdInp').value.trim() || 'default_client';
+        config.clientId = document.getElementById('clientIdInp').value.trim() || defaultCollegeName;
         localStorage.setItem('active_client_id', config.clientId);
         
-        config.c = document.getElementById('classInp').value.trim();
+        config.c = document.getElementById('classInp').value.trim() || defaultCollegeName;
         config.p = document.getElementById('profInp').value.trim();
         config.s = document.getElementById('subInp').value.trim();
         config.sigTitle = document.getElementById('sigTitleInp').value.trim();
@@ -447,7 +606,7 @@
         
         await db.config.put({ id: 'app_config', data: config });
         if(firebaseDB) { 
-            const cId = config.clientId;
+            const cId = sanitizeFirebaseKey(config.clientId);
             firebaseDB.ref(`clients/${cId}/config`).set(config); 
             trackSystemUsage();
         }
@@ -456,10 +615,16 @@
     }
 
     function generateFooterQRDataUrl(callback) {
-        if (!config.link) { cachedFooterQrDataUrl = ""; if (callback) callback(); return; }
+        const qrText = config.link || "https://cs-academy.pk";
         const tempBox = document.getElementById('temp-qr-box');
         tempBox.innerHTML = '';
-        new QRCode(tempBox, { text: config.link, width: 50, height: 50, correctLevel: QRCode.CorrectLevel.H });
+        
+        new QRCode(tempBox, { 
+            text: qrText, 
+            width: 200, 
+            height: 200, 
+            correctLevel: QRCode.CorrectLevel.H 
+        });
 
         setTimeout(() => {
             const canvas = tempBox.querySelector('canvas');
@@ -501,7 +666,7 @@
 
                 await db.config.put({ id: 'app_config', data: config });
                 if(firebaseDB) {
-                    const cId = config.clientId;
+                    const cId = sanitizeFirebaseKey(config.clientId);
                     firebaseDB.ref(`clients/${cId}/config`).set(config);
                 }
                 drawTable();
@@ -522,16 +687,16 @@
         const onScanSuccess = async (id) => {
             const day = new Date().getDate();
             const key = `${config.m}-${day}-${id.trim()}`;
-            const st = students.find(s => s.id === id.trim() || s.roll === id.trim());
-            const cId = config.clientId || 'default_client';
+            const st = students.find(s => String(s.id).trim() === String(id).trim() || String(s.roll).trim() === String(id).trim());
+            const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
             
-            if(st && !records[key]) {
-                records[key] = true;
-                await db.records.put({ key: key, val: true });
-                if(firebaseDB) firebaseDB.ref(`clients/${cId}/records/${key}`).set(true);
+            if(st && records[key] !== "P") {
+                records[key] = "P";
+                await db.records.put({ key: key, val: "P" });
+                if(firebaseDB) firebaseDB.ref(`clients/${cId}/records/${sanitizeFirebaseKey(key)}`).set("P");
                 drawTable();
-                alert(`✅ Attendance Marked for ${st.name}!`);
-                if(st.phone) { sendWhatsAppAlert(st, day); }
+                alert(`✅ Attendance Marked Present for ${st.name}!`);
+                if(st.phone) { sendWhatsAppAlertById(st.id, day); }
             }
         };
 
@@ -549,24 +714,47 @@
         }
     }
 
-    function sendWhatsAppAlert(st, day) {
+    async function toggleLeaveById(stId, day) {
+        const key = `${config.m}-${day}-${stId}`;
+        const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
+        const safeKey = sanitizeFirebaseKey(key);
+
+        if(records[key] === "L") {
+            delete records[key];
+            await db.records.delete(key);
+            if(firebaseDB) firebaseDB.ref(`clients/${cId}/records/${safeKey}`).remove();
+        } else {
+            records[key] = "L";
+            await db.records.put({ key: key, val: "L" });
+            if(firebaseDB) firebaseDB.ref(`clients/${cId}/records/${safeKey}`).set("L");
+        }
+        drawTable();
+    }
+
+    function sendWhatsAppAlertById(stId, day) {
+        const st = students.find(s => String(s.id) === String(stId));
+        if(!st) return;
         if(!st.phone) { alert(`No WhatsApp phone registered for ${st.name}!`); return; }
-        let cleanPhone = st.phone.replace(/[^0-9]/g, '');
+        
+        let cleanPhone = String(st.phone).replace(/[^0-9]/g, '');
         if(cleanPhone.startsWith('0')) { cleanPhone = '92' + cleanPhone.substring(1); }
         
-        const isPresent = records[`${config.m}-${day}-${st.id}`];
-        const institutionName = document.getElementById('classInp').value.trim() || config.c || 'CS Academy';
+        const recStatus = records[`${config.m}-${day}-${st.id}`];
+        const isPresent = recStatus === "P" || recStatus === true;
+        const isLeave = recStatus === "L";
+
+        const institutionName = document.getElementById('classInp').value.trim() || config.c || defaultCollegeName;
         const formattedDate = `${config.m}-${day < 10 ? '0' + day : day}`;
         
         let messageText = "";
         if (config.waLang === 'pashto') {
-            const statusText = isPresent ? "حاضر ✅" : "غیرحاضر ❌";
+            const statusText = isPresent ? "حاضر ✅" : (isLeave ? "رخصت 🏖️" : "غیرحاضر ❌");
             messageText = `محترم والد صاحب!\nد زده کوونکي *${st.name}* (رول نمبر: ${st.roll}) د نن ورځې حاضري حالت:\nحالت: *${statusText}*\nتاريخ: ${formattedDate}\nاداره: ${institutionName}`;
         } else if (config.waLang === 'urdu') {
-            const statusText = isPresent ? "حاضر ✅" : "غیرحاضر ❌";
+            const statusText = isPresent ? "حاضر ✅" : (isLeave ? "رخصت 🏖️" : "غیرحاضر ❌");
             messageText = `محترم والد صاحب!\nطالب علم *${st.name}* (رول نمبر: ${st.roll}) کی حاضری کی تفصیل:\nحیثیت: *${statusText}*\nتاریخ: ${formattedDate}\nادارہ: ${institutionName}`;
         } else {
-            const statusText = isPresent ? "PRESENT ✅" : "ABSENT ❌";
+            const statusText = isPresent ? "PRESENT ✅" : (isLeave ? "ON LEAVE 🏖️" : "ABSENT ❌");
             messageText = `Respected Parent,\nStudent: *${st.name}* (Roll: ${st.roll})\nStatus: *${statusText}*\nDate: ${formattedDate}\nInstitution: ${institutionName}`;
         }
 
@@ -580,8 +768,8 @@
         const today = new Date().getDate();
 
         selectedCheckboxes.forEach((cb, i) => {
-            const idx = cb.getAttribute('data-idx');
-            setTimeout(() => { sendWhatsAppAlert(students[idx], today); }, i * 1200);
+            const stId = cb.getAttribute('data-id');
+            setTimeout(() => { sendWhatsAppAlertById(stId, today); }, i * 1200);
         });
     }
 
@@ -590,7 +778,7 @@
         const resBox = document.getElementById('portalResult');
         if (!q) { alert("Please enter Roll No or Student ID!"); return; }
 
-        const st = students.find(s => s.roll === q || s.id === q);
+        const st = students.find(s => String(s.roll) === String(q) || String(s.id) === String(q));
         if (!st) {
             resBox.style.display = 'block';
             resBox.innerHTML = `<div style="color:#ef4444; font-weight:bold;">❌ No student found with Roll No / ID: "${q}"</div>`;
@@ -599,13 +787,20 @@
 
         const [year, month] = (config.m || new Date().toISOString().slice(0, 7)).split('-').map(Number);
         const days = new Date(year, month, 0).getDate();
-        let totalP = 0;
+        let totalP = 0, totalL = 0, workingDays = 0;
 
         for (let d = 1; d <= days; d++) {
-            if (records[`${config.m}-${d}-${st.id}`]) totalP++;
+            const dt = new Date(year, month - 1, d);
+            if (dt.getDay() === 0) continue; 
+            
+            workingDays++;
+            const rec = records[`${config.m}-${d}-${st.id}`];
+            if (rec === "P" || rec === true) totalP++;
+            else if (rec === "L") totalL++;
         }
 
-        const pct = ((totalP / days) * 100).toFixed(1);
+        const pct = workingDays > 0 ? ((totalP / workingDays) * 100).toFixed(1) : "0.0";
+        
         resBox.style.display = 'block';
         resBox.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -615,48 +810,59 @@
                 </div>
                 <div style="text-align:right;">
                     <div style="font-size:20px; font-weight:bold; color:#4ade80;">${pct}%</div>
-                    <div style="font-size:11px; color:#94a3b8;">${totalP} / ${days} Days Present</div>
+                    <div style="font-size:11px; color:#94a3b8;">${totalP} Present | ${totalL} Leave (${workingDays} Work Days)</div>
                 </div>
             </div>`;
     }
 
     function addOrUpdateStudent() {
-        if (!isPro && students.length >= 10 && document.getElementById('editIndex').value === "-1") {
+        const editId = document.getElementById('editStudentId').value;
+        if (!isPro && students.length >= 10 && !editId) {
             alert("⚠️ Free Tier Limit Reached (Max 10 Students)!\n\nPlease enter a Pro License Key to unlock unlimited students.");
             return;
         }
 
-        const idx = parseInt(document.getElementById('editIndex').value);
-        const n = document.getElementById('stN').value, f = document.getElementById('stF').value, r = document.getElementById('stR').value, i = document.getElementById('stI').value, p = document.getElementById('stPhone').value;
+        const n = document.getElementById('stN').value.trim(), 
+              f = document.getElementById('stF').value.trim(), 
+              r = document.getElementById('stR').value.trim(), 
+              i = document.getElementById('stI').value.trim(), 
+              p = document.getElementById('stPhone').value.trim();
         const photoInput = document.getElementById('stPhoto');
         
         if(!n || !i) { alert("Please fill Name and QR Code fields!"); return; }
 
         if (photoInput.files[0]) {
-            processImage(photoInput.files[0], 500, (base64Photo) => { saveStudentData(idx, n, f, r, i, p, base64Photo); });
+            processImage(photoInput.files[0], 500, (base64Photo) => { saveStudentData(editId, n, f, r, i, p, base64Photo); });
         } else {
-            const existingPhoto = (idx >= 0 && students[idx]) ? students[idx].photo : '';
-            saveStudentData(idx, n, f, r, i, p, existingPhoto);
+            const existingSt = students.find(s => String(s.id) === String(editId));
+            const existingPhoto = existingSt ? existingSt.photo : '';
+            saveStudentData(editId, n, f, r, i, p, existingPhoto);
         }
     }
 
-    async function saveStudentData(idx, name, father, roll, id, phone, photo) {
-        const stObj = { name, father, roll, id, phone, photo };
-        const cId = config.clientId || 'default_client';
+    async function saveStudentData(editId, name, father, roll, id, phone, photo) {
+        const stObj = { name, father, roll: String(roll), id: String(id), phone: String(phone), photo };
+        const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
+        const safeId = sanitizeFirebaseKey(id);
 
-        if (idx >= 0) {
-            const oldId = students[idx].id;
-            if (oldId !== id) {
-                await db.students.delete(oldId);
-                if(firebaseDB) firebaseDB.ref(`clients/${cId}/students/${oldId}`).remove();
+        if (editId) {
+            if (String(editId) !== String(id)) {
+                await db.students.delete(editId);
+                if(firebaseDB) firebaseDB.ref(`clients/${cId}/students/${sanitizeFirebaseKey(editId)}`).remove();
+                const oldIdx = students.findIndex(s => String(s.id) === String(editId));
+                if(oldIdx !== -1) students.splice(oldIdx, 1);
             }
-            students[idx] = stObj;
-        } else { students.push(stObj); }
+            const existIdx = students.findIndex(s => String(s.id) === String(id));
+            if(existIdx !== -1) students[existIdx] = stObj;
+            else students.push(stObj);
+        } else { 
+            students.push(stObj); 
+        }
         
         await db.students.put(stObj);
-        if(firebaseDB) firebaseDB.ref(`clients/${cId}/students/${id}`).set(stObj);
+        if(firebaseDB) firebaseDB.ref(`clients/${cId}/students/${safeId}`).set(stObj);
 
-        document.getElementById('editIndex').value = "-1";
+        document.getElementById('editStudentId').value = "";
         document.getElementById('stN').value = ''; document.getElementById('stF').value = ''; 
         document.getElementById('stR').value = ''; document.getElementById('stI').value = ''; 
         document.getElementById('stPhone').value = ''; document.getElementById('stPhoto').value = '';
@@ -666,9 +872,10 @@
         drawTable();
     }
 
-    function editStudent(idx) {
-        const st = students[idx];
-        document.getElementById('editIndex').value = idx;
+    function editStudentById(stId) {
+        const st = students.find(s => String(s.id) === String(stId));
+        if(!st) return;
+        document.getElementById('editStudentId').value = st.id;
         document.getElementById('stN').value = st.name;
         document.getElementById('stF').value = st.father || '';
         document.getElementById('stR').value = st.roll;
@@ -678,13 +885,14 @@
         document.getElementById('addBtn').style.background = "#f59e0b";
     }
 
-    async function deleteStudent(idx) {
-        if(confirm(`Are you sure you want to delete ${students[idx].name}?`)) {
-            const deletedId = students[idx].id;
-            const cId = config.clientId || 'default_client';
-            students.splice(idx, 1);
-            await db.students.delete(deletedId);
-            if(firebaseDB) firebaseDB.ref(`clients/${cId}/students/${deletedId}`).remove();
+    async function deleteStudentById(stId) {
+        const st = students.find(s => String(s.id) === String(stId));
+        if(!st) return;
+        if(confirm(`Are you sure you want to delete ${st.name}?`)) {
+            const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
+            students = students.filter(s => String(s.id) !== String(stId));
+            await db.students.delete(stId);
+            if(firebaseDB) firebaseDB.ref(`clients/${cId}/students/${sanitizeFirebaseKey(stId)}`).remove();
             drawTable();
         }
     }
@@ -706,7 +914,9 @@
     }
 
     function renderAnalyticsChart(labels, percentages) {
-        const ctx = document.getElementById('attendanceChart').getContext('2d');
+        const chartElem = document.getElementById('attendanceChart');
+        if(!chartElem) return;
+        const ctx = chartElem.getContext('2d');
         if (attendanceChartInstance) { attendanceChartInstance.destroy(); }
 
         attendanceChartInstance = new Chart(ctx, {
@@ -734,34 +944,138 @@
         });
     }
 
-    function exportToExcel() {
-        if (students.length === 0) { alert("No student records available to export!"); return; }
+    /* Advanced ExcelJS Native Image Export Function */
+    async function exportToExcel() {
+        if (students.length === 0) { 
+            alert("No student records available to export!"); 
+            return; 
+        }
 
         const [year, month] = (config.m || new Date().toISOString().slice(0, 7)).split('-').map(Number);
         const days = new Date(year, month, 0).getDate();
 
-        const excelData = students.map(st => {
-            let row = { "Roll No": st.roll, "Student Name": st.name, "Father Name": st.father || '-', "Phone": st.phone || '-' };
-            let totalP = 0;
-            for(let d=1; d<=days; d++) {
-                const isPresent = !!records[`${config.m}-${d}-${st.id}`];
-                row[`Day ${d}`] = isPresent ? "P" : "A";
-                if(isPresent) totalP++;
-            }
-            row["Total Present"] = totalP;
-            row["Attendance %"] = ((totalP / days) * 100).toFixed(1) + "%";
-            return row;
-        });
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Attendance Report");
 
-        const worksheet = XLSX.utils.json_to_sheet(excelData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Report");
-        XLSX.writeFile(workbook, `Attendance_Report_${config.m}.xlsx`);
+        const columns = [
+            { header: "Student Photo", key: "photo", width: 12 },
+            { header: "Roll No", key: "roll", width: 10 },
+            { header: "Student Name", key: "name", width: 22 },
+            { header: "Father Name", key: "father", width: 20 },
+            { header: "Phone", key: "phone", width: 16 }
+        ];
+
+        for (let d = 1; d <= days; d++) {
+            columns.push({ header: `Day ${d}`, key: `day_${d}`, width: 6 });
+        }
+
+        columns.push(
+            { header: "Total Present", key: "total_p", width: 14 },
+            { header: "Total Leave", key: "total_l", width: 12 },
+            { header: "Attendance %", key: "attendance_pct", width: 15 }
+        );
+
+        worksheet.columns = columns;
+
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
+        headerRow.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "1E3A8A" }
+        };
+        headerRow.alignment = { vertical: "middle", horizontal: "center" };
+        headerRow.height = 25;
+
+        for (let index = 0; index < students.length; index++) {
+            const st = students[index];
+            const rowIndex = index + 2; 
+            const row = worksheet.getRow(rowIndex);
+            row.height = 45; 
+
+            let totalP = 0, totalL = 0, totalWorkingDays = 0;
+            const rowData = {
+                photo: "",
+                roll: st.roll,
+                name: st.name,
+                father: st.father || "-",
+                phone: st.phone || "-"
+            };
+
+            for (let d = 1; d <= days; d++) {
+                const dt = new Date(year, month - 1, d);
+                const isSunday = dt.getDay() === 0;
+                const recStatus = records[`${config.m}-${d}-${st.id}`];
+
+                if (isSunday) {
+                    rowData[`day_${d}`] = "OFF";
+                } else {
+                    totalWorkingDays++;
+                    if (recStatus === "P" || recStatus === true) {
+                        rowData[`day_${d}`] = "P";
+                        totalP++;
+                    } else if (recStatus === "L") {
+                        rowData[`day_${d}`] = "L";
+                        totalL++;
+                    } else {
+                        rowData[`day_${d}`] = "A";
+                    }
+                }
+            }
+
+            rowData["total_p"] = totalP;
+            rowData["total_l"] = totalL;
+            rowData["attendance_pct"] = (totalWorkingDays > 0 ? ((totalP / totalWorkingDays) * 100).toFixed(1) : "0.0") + "%";
+
+            row.values = rowData;
+
+            row.eachCell({ includeEmpty: true }, (cell) => {
+                cell.alignment = { vertical: "middle", horizontal: "center" };
+                cell.border = {
+                    top: { style: 'thin' },
+                    left: { style: 'thin' },
+                    bottom: { style: 'thin' },
+                    right: { style: 'thin' }
+                };
+            });
+
+            if (st.photo && st.photo.startsWith("data:image")) {
+                try {
+                    const imageId = workbook.addImage({
+                        base64: st.photo,
+                        extension: "png"
+                    });
+
+                    worksheet.addImage(imageId, {
+                        tl: { col: 0.1, row: rowIndex - 0.9 },
+                        ext: { width: 50, height: 50 }
+                    });
+                } catch (imgErr) {
+                    console.error("Image export error for student:", st.name, imgErr);
+                }
+            }
+        }
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        saveAs(blob, `Attendance_Report_${config.m}.xlsx`);
     }
 
-    function printOfficialSheet() {
+    function printOfficialSheet(orientation = 'landscape') {
+        const styleElem = document.getElementById('dynamic-print-style');
+        if (orientation === 'landscape') {
+            styleElem.innerHTML = "@page { size: A4 landscape; margin: 3mm; }";
+        } else {
+            styleElem.innerHTML = "@page { size: A4 portrait; margin: 3mm; }";
+        }
+
+        document.body.classList.remove('print-mode-qr');
+        document.body.classList.add('print-mode-sheet');
         drawTable();
-        setTimeout(() => { window.print(); }, 200);
+        
+        setTimeout(() => { 
+            window.print(); 
+        }, 300);
     }
 
     function importFromExcel() {
@@ -777,7 +1091,7 @@
             const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
             let importedCount = 0;
-            const cId = config.clientId || 'default_client';
+            const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
 
             for (let r of rows) {
                 if (!isPro && (students.length + importedCount) >= 10) {
@@ -795,7 +1109,7 @@
                     const stObj = { name, father, roll: String(roll), id, phone, photo: '' };
                     students.push(stObj);
                     await db.students.put(stObj);
-                    if (firebaseDB) firebaseDB.ref(`clients/${cId}/students/${id}`).set(stObj);
+                    if (firebaseDB) firebaseDB.ref(`clients/${cId}/students/${sanitizeFirebaseKey(id)}`).set(stObj);
                     importedCount++;
                 }
             }
@@ -811,34 +1125,42 @@
     }
 
     function generateHeaderHTML() {
-        const logoImg = config.logo ? `<img src="${config.logo}" style="height:45px; width:45px; object-fit:contain; border:1px solid ${config.titleColor}; border-radius:4px; padding:1px; background:white;">` : '<div style="width:45px;"></div>';
-        const principalImg = config.principal ? `<img src="${config.principal}" style="height:45px; width:38px; object-fit:cover; border:1px solid ${config.titleColor}; border-radius:4px; background:white;">` : '<div style="width:38px;"></div>';
-        const bgColor = config.headerBg || '#e2e8f0';
+        const logoImg = config.logo ? `<img src="${config.logo}" style="height:30px; width:30px; object-fit:contain; border:1px solid #ffffff; border-radius:3px; padding:1px; background:white;">` : '<div style="width:30px;"></div>';
+        const principalImg = config.principal ? `<img src="${config.principal}" style="height:30px; width:26px; object-fit:cover; border:1px solid #ffffff; border-radius:3px; background:white;">` : '<div style="width:26px;"></div>';
+        const bgColor = config.headerBg || '#1e3a8a';
+        const txtColor = config.titleColor || '#ffffff';
 
         return `
-            <div class="print-header-box" style="display:flex; justify-content:space-between; align-items:center; padding:4px 8px; margin-bottom:4px; background-color:${bgColor} !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important;">
-                <div style="width:45px; text-align:left;">${logoImg}</div>
-                <div style="text-align:center; flex-grow:1;">
-                    <h2 style="margin:0; font-size:18px; text-transform:uppercase; color:${config.titleColor}; font-weight:bold;">${config.c || 'STUDENT ATTENDANCE SHEET'}</h2>
-                    <div style="display:flex; justify-content:center; gap:20px; font-weight:bold; margin-top:2px; font-size:11px; color:${config.titleColor};">
-                        <span><b>Incharge:</b> ${config.p || '-'}</span>
-                        <span><b>Subject/Dept:</b> ${config.s || '-'}</span>
-                        <span><b>Month:</b> ${config.m || '-'}</span>
+            <div class="print-header-box" style="display:flex; justify-content:space-between; align-items:center; padding:3px 6px; background-color:${bgColor} !important; color:${txtColor} !important; border:1px solid #000 !important; box-sizing:border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+                <div style="width:30px; text-align:left;">${logoImg}</div>
+                <div style="text-align:center; flex-grow:1; color:${txtColor} !important;">
+                    <h2 style="margin:0; font-size:12px; text-transform:uppercase; color:${txtColor} !important; font-weight:bold; letter-spacing:0.2px;">${config.c || defaultCollegeName}</h2>
+                    <div style="display:flex; justify-content:center; gap:12px; font-weight:bold; margin-top:1px; font-size:8.5px; color:${txtColor} !important;">
+                        <span><b>Incharge:</b> ${config.p || 'Muhammad khan'}</span>
+                        <span><b>Subject/Dept:</b> ${config.s || 'Computer science'}</span>
+                        <span><b>Month:</b> ${config.m || '2026-09'}</span>
                     </div>
                 </div>
-                <div style="width:38px; text-align:right;">${principalImg}</div>
+                <div style="width:26px; text-align:right;">${principalImg}</div>
             </div>`;
     }
 
     function generateFooterHTML() {
-        const sigImg = config.sig ? `<img src="${config.sig}" style="height:35px; max-width:120px; object-fit:contain;"><br>` : '';
-        const sigTitleText = config.sigTitle ? `<span style="font-weight:bold; font-size:10px; border-top:1px solid #000; padding-top:1px; display:inline-block; min-width:100px; text-align:center;">${config.sigTitle}</span>` : '';
-        const qrImgHTML = cachedFooterQrDataUrl ? `<img src="${cachedFooterQrDataUrl}" style="width:45px; height:45px; display:block; border:1px solid #000; padding:1px; background:white;">` : '';
+        const sigImg = config.sig ? `<img src="${config.sig}" style="height:32px; max-width:120px; object-fit:contain; display:block; margin:0 auto; transform: translateY(11px); position:relative; z-index:2;">` : '';
+        const sigTitleText = config.sigTitle ? `<span style="font-weight:bold; font-size:9.5px; border-top:1.5px solid #000; padding-top:2px; display:inline-block; min-width:120px; text-align:center; color:#000; position:relative; z-index:1;">${config.sigTitle}</span>` : '<span style="font-weight:bold; font-size:9.5px; border-top:1.5px solid #000; padding-top:2px; display:inline-block; min-width:120px; text-align:center; color:#000; position:relative; z-index:1;">Principle signature</span>';
+        
+        const qrImgHTML = cachedFooterQrDataUrl ? `<img src="${cachedFooterQrDataUrl}" style="width:60px; height:60px; display:block; border:1px solid #000; padding:2px; background:white; image-rendering: pixelated;">` : '';
 
         return `
-            <div class="print-footer-container" style="display:flex; justify-content:space-between; align-items:flex-end; padding:4px 10px 0 10px;">
-                <div style="text-align:left;">${qrImgHTML}</div>
-                <div style="text-align:center;">${sigImg}${sigTitleText}</div>
+            <div class="print-footer-container">
+                <div style="text-align:left; display:flex; flex-direction:column; align-items:flex-start;">
+                    ${qrImgHTML}
+                    <span style="font-size:6.5px; font-weight:bold; color:#000; margin-top:2px;">Scan for Verification</span>
+                </div>
+                <div style="text-align:center; margin-bottom: 2px;">
+                    ${sigImg}
+                    ${sigTitleText}
+                </div>
             </div>`;
     }
 
@@ -846,38 +1168,81 @@
         students.sort((a, b) => (parseInt(a.roll) || 0) - (parseInt(b.roll) || 0));
         const [year, month] = (config.m || new Date().toISOString().slice(0, 7)).split('-').map(Number);
         const days = new Date(year, month, 0).getDate();
+        const todayNum = new Date().getDate();
         
         let chartLabels = [];
         let chartPercentages = [];
 
-        let head = `<tr><th style="width:30px;"><input type="checkbox" id="selectAllBox" onchange="toggleSelectAll(this)" class="st-check"></th>`;
-        head += `<th style="width:40px;">Roll</th><th style="min-width:130px; text-align:left; padding-left:6px;">Name</th><th style="min-width:100px; text-align:left; padding-left:6px;">Father</th>`;
-        for(let d=1; d<=days; d++) head += `<th style="width:20px;">${d}</th>`;
-        head += `<th style="width:30px;">Tot</th><th style="width:35px;">%</th></tr>`;
+        let headDays = '<tr>';
+        let headNums = '<tr>';
         
+        const thWhiteStyle = "background-color:#ffffff !important; color:#000000 !important; font-weight:bold; border:1px solid #000000 !important; vertical-align:middle !important;";
+
+        headDays += `<th rowspan="2" style="width:25px; ${thWhiteStyle}"><input type="checkbox" id="selectAllBox" onchange="toggleSelectAll(this)" class="st-check"></th>`;
+        headDays += `<th rowspan="2" class="col-roll" style="${thWhiteStyle}">Roll</th>
+                     <th rowspan="2" class="col-name" style="${thWhiteStyle}">Name</th>
+                     <th rowspan="2" class="col-father" style="${thWhiteStyle}">Father's Name</th>`;
+
+        for(let d=1; d<=days; d++) {
+            const dt = new Date(year, month - 1, d);
+            const dayOfWeekIndex = dt.getDay();
+            const dayNameStr = pashtoDaysNames[dayOfWeekIndex];
+            const isSun = dayOfWeekIndex === 0;
+
+            const sunStyle = isSun ? 'background-color:#fef3c7 !important; color:#b45309 !important;' : thWhiteStyle;
+            headDays += `<th class="day-header" style="${sunStyle}">${dayNameStr}</th>`;
+            headNums += `<th style="${sunStyle}">${d}</th>`;
+        }
+
+        headDays += `<th rowspan="2" style="width:28px; ${thWhiteStyle}">Tot</th>
+                     <th rowspan="2" style="width:30px; ${thWhiteStyle}">%</th></tr>`;
+        headNums += '</tr>';
+
         let body = '';
-        students.forEach((st, idx) => {
-            let count = 0;
-            let row = `<tr><td><input type="checkbox" data-idx="${idx}" class="st-check st-select-item"></td>`;
-            row += `<td>${st.roll}</td>
-                <td style="text-align:left; padding-left:6px;">
+        students.forEach((st) => {
+            let countP = 0;
+            let countL = 0;
+            let totalWorkingDays = 0;
+
+            let row = `<tr><td><input type="checkbox" data-id="${st.id}" class="st-check st-select-item"></td>`;
+            row += `<td class="col-roll">${st.roll}</td>
+                <td class="col-name">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span>${st.name}</span>
-                        <span>
-                            <button class="action-btn btn-wa" onclick="sendWhatsAppAlert(students[${idx}], new Date().getDate())">💬</button>
-                            <button class="action-btn btn-edit" onclick="editStudent(${idx})">✏️</button>
-                            <button class="action-btn btn-del" onclick="deleteStudent(${idx})">🗑️</button>
+                        <span style="font-weight:bold;">${st.name}</span>
+                        <span class="action-buttons-cell">
+                            <button class="action-btn btn-leave" title="Toggle Leave" onclick="toggleLeaveById('${st.id}', ${todayNum})">🏖️</button>
+                            <button class="action-btn btn-wa" title="WhatsApp Alert" onclick="sendWhatsAppAlertById('${st.id}', ${todayNum})">💬</button>
+                            <button class="action-btn btn-edit" title="Edit Student" onclick="editStudentById('${st.id}')">✏️</button>
+                            <button class="action-btn btn-del" title="Delete Student" onclick="deleteStudentById('${st.id}')">🗑️</button>
                         </span>
                     </div>
                 </td>
-                <td style="text-align:left; padding-left:6px;">${st.father || '-'}</td>`;
+                <td class="col-father">${st.father || '-'}</td>`;
             
             for(let d=1; d<=days; d++) {
-                if(records[`${config.m}-${d}-${st.id}`]) { count++; row += '<td style="color:green">P</td>'; }
-                else row += '<td style="color:red; opacity:0.2">A</td>';
+                const dt = new Date(year, month - 1, d);
+                const isSunday = dt.getDay() === 0;
+                const recStatus = records[`${config.m}-${d}-${st.id}`];
+
+                if(isSunday) {
+                    row += '<td class="td-sunday" title="Sunday Holiday">OFF</td>';
+                } else {
+                    totalWorkingDays++;
+                    if(recStatus === "P" || recStatus === true) { 
+                        countP++; 
+                        row += '<td style="color:green; font-weight:bold;">P</td>'; 
+                    } else if(recStatus === "L") {
+                        countL++;
+                        row += '<td class="td-leave" title="Approved Leave">L</td>';
+                    } else { 
+                        row += '<td style="color:red; opacity:0.2">A</td>'; 
+                    }
+                }
             }
-            const pct = ((count / days) * 100).toFixed(0);
-            row += `<td style="background:#f1f5f9">${count}</td><td style="background:#e2e8f0; font-weight:bold;">${pct}%</td></tr>`; 
+
+            const pct = totalWorkingDays > 0 ? ((countP / totalWorkingDays) * 100).toFixed(0) : "0";
+
+            row += `<td style="background:#f1f5f9">${countP}</td><td style="background:#e2e8f0; font-weight:bold;">${pct}%</td></tr>`; 
             body += row;
 
             chartLabels.push(st.name);
@@ -885,7 +1250,7 @@
         });
 
         setTimeout(() => renderAnalyticsChart(chartLabels, chartPercentages), 100);
-        return generateHeaderHTML() + `<table>${head}${body}</table>` + generateFooterHTML();
+        return generateHeaderHTML() + `<table style="width:100%; border-collapse:collapse; border:1px solid #000 !important; background:#ffffff !important;">${headDays}${headNums}${body}</table>` + generateFooterHTML();
     }
 
     function renderPrintPagesHTML(studentList = students) {
@@ -900,30 +1265,76 @@
         for (let page = 0; page < totalPages; page++) {
             let pageStudents = studentList.slice(page * perPage, (page + 1) * perPage);
 
-            let head = `<tr style="background:#f1f5f9;">`;
-            head += `<th style="width:35px;">Roll</th><th style="width:130px; text-align:left; padding-left:6px;">Name</th><th style="width:110px; text-align:left; padding-left:6px;">Father Name</th>`;
-            for(let d=1; d<=days; d++) head += `<th style="width:18px;">${d}</th>`;
-            head += `<th style="width:28px;">Tot</th><th style="width:32px;">%</th></tr>`;
+            let headDays = '<tr>';
+            let headNums = '<tr>';
+            
+            const thSolidWhite = "background-color:#ffffff !important; color:#000000 !important; font-weight:bold; border:1px solid #000000 !important; vertical-align:middle !important;";
+
+            headDays += `<th rowspan="2" style="width:35px; ${thSolidWhite}">Roll</th>
+                         <th rowspan="2" style="width:120px; text-align:left; padding-left:4px; ${thSolidWhite}">Name</th>
+                         <th rowspan="2" style="width:110px; text-align:left; padding-left:4px; ${thSolidWhite}">Father's Name</th>`;
+
+            for(let d=1; d<=days; d++) {
+                const dt = new Date(year, month - 1, d);
+                const dayOfWeekIndex = dt.getDay();
+                const dayNameStr = pashtoDaysNames[dayOfWeekIndex];
+                const isSun = dayOfWeekIndex === 0;
+
+                const sunStyle = isSun ? 'background-color:#fef3c7 !important; color:#b45309 !important;' : thSolidWhite;
+                headDays += `<th class="day-header" style="font-size:7px; padding:1px; ${sunStyle}">${dayNameStr}</th>`;
+                headNums += `<th style="font-size:7px; ${sunStyle}">${d}</th>`;
+            }
+
+            headDays += `<th rowspan="2" style="width:20px; ${thSolidWhite}">Tot</th>
+                         <th rowspan="2" style="width:24px; ${thSolidWhite}">%</th></tr>`;
+            headNums += '</tr>';
 
             let body = '';
             pageStudents.forEach((st) => {
-                let count = 0;
-                let row = `<tr><td style="font-weight:bold;">${st.roll}</td><td style="text-align:left; padding-left:6px;">${st.name}</td><td style="text-align:left; padding-left:6px;">${st.father || '-'}</td>`;
+                let countP = 0;
+                let countL = 0;
+                let totalWorkingDays = 0;
+
+                let row = `<tr><td style="font-weight:bold; color:#000; border:1px solid #000 !important;">${st.roll}</td>
+                               <td style="text-align:left; padding-left:4px; color:#000; border:1px solid #000 !important;">${st.name}</td>
+                               <td style="text-align:left; padding-left:4px; color:#000; border:1px solid #000 !important;">${st.father || '-'}</td>`;
+                
                 for(let d=1; d<=days; d++) {
-                    if(records[`${config.m}-${d}-${st.id}`]) { count++; row += '<td class="status-p">P</td>'; }
-                    else row += '<td class="status-a">A</td>';
+                    const dt = new Date(year, month - 1, d);
+                    const isSunday = dt.getDay() === 0;
+                    const recStatus = records[`${config.m}-${d}-${st.id}`];
+
+                    if(isSunday) {
+                        row += '<td class="status-sun" style="border:1px solid #000 !important;">S</td>';
+                    } else {
+                        totalWorkingDays++;
+                        if(recStatus === "P" || recStatus === true) { 
+                            countP++; 
+                            row += '<td class="status-p" style="border:1px solid #000 !important;">P</td>'; 
+                        } else if(recStatus === "L") {
+                            countL++;
+                            row += '<td class="status-l" style="border:1px solid #000 !important;">L</td>';
+                        } else { 
+                            row += '<td class="status-a" style="border:1px solid #000 !important;">A</td>'; 
+                        }
+                    }
                 }
-                const pct = ((count / days) * 100).toFixed(0);
-                row += `<td style="background:#f8fafc; font-weight:bold;">${count}</td><td style="background:#f1f5f9; font-weight:bold;">${pct}%</td></tr>`; 
+
+                const pct = totalWorkingDays > 0 ? ((countP / totalWorkingDays) * 100).toFixed(0) : "0";
+
+                row += `<td style="background:#f8fafc; font-weight:bold; color:#000; border:1px solid #000 !important;">${countP}</td>
+                        <td style="background:#f1f5f9; font-weight:bold; color:#000; border:1px solid #000 !important;">${pct}%</td></tr>`; 
                 body += row;
             });
 
             fullPagesHTML += `
-                <div class="print-page">
-                    ${generateHeaderHTML()}
-                    <table style="width:100%; border-collapse:collapse; table-layout:fixed;">${head}${body}</table>
-                    ${generateFooterHTML()}
-                    <div style="text-align:right; font-size:9px; color:#475569; margin-top:2px;">Page ${page + 1} of ${totalPages}</div>
+                <div class="print-page" style="background:#ffffff; color:#000000; padding:10px;">
+                    <div style="width:100%;">
+                        ${generateHeaderHTML()}
+                        <table style="width:100%; border-collapse:collapse; table-layout:auto; background:#ffffff; border:1px solid #000 !important;">${headDays}${headNums}${body}</table>
+                        ${generateFooterHTML()}
+                        <div style="text-align:right; font-size:7px; color:#475569; margin-top:2px;">Page ${page + 1} of ${totalPages}</div>
+                    </div>
                 </div>`;
         }
 
@@ -931,68 +1342,158 @@
     }
 
     function drawTable() {
-        document.getElementById('table-content').innerHTML = renderScreenTableHTML();
-        document.getElementById('capture-sheet').innerHTML = renderPrintPagesHTML(students);
+        const tableContent = document.getElementById('table-content');
+        const captureSheet = document.getElementById('capture-sheet');
+        if (tableContent) tableContent.innerHTML = renderScreenTableHTML();
+        if (captureSheet) captureSheet.innerHTML = renderPrintPagesHTML(students);
     }
 
     function printSelectedStudentsSheet() {
+        const styleElem = document.getElementById('dynamic-print-style');
+        styleElem.innerHTML = "@page { size: A4 landscape; margin: 3mm; }";
+
+        document.body.classList.remove('print-mode-qr');
+        document.body.classList.add('print-mode-sheet');
         const selectedCheckboxes = document.querySelectorAll('.st-select-item:checked');
         if (selectedCheckboxes.length === 0) { alert("Please select students using checkboxes first!"); return; }
 
         let selectedList = [];
         selectedCheckboxes.forEach(cb => {
-            const idx = cb.getAttribute('data-idx');
-            selectedList.push(students[idx]);
+            const stId = cb.getAttribute('data-id');
+            const st = students.find(s => String(s.id) === String(stId));
+            if(st) selectedList.push(st);
         });
 
         document.getElementById('capture-sheet').innerHTML = renderPrintPagesHTML(selectedList);
-        setTimeout(() => { window.print(); }, 200);
+        setTimeout(() => { window.print(); }, 300);
     }
 
     function downloadHD(divId, fileName) {
         const captureNode = document.getElementById(divId);
-        captureNode.style.display = 'block';
         
-        html2canvas(captureNode, { scale: 2.5, backgroundColor: "#ffffff", useCORS: true }).then(canvas => {
-            captureNode.style.display = 'none';
+        captureNode.style.position = 'fixed';
+        captureNode.style.left = '0px';
+        captureNode.style.top = '0px';
+        captureNode.style.zIndex = '99999';
+        captureNode.style.width = '1400px';
+        captureNode.style.background = '#ffffff';
+
+        html2canvas(captureNode, { 
+            scale: 2,
+            backgroundColor: "#ffffff", 
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            width: 1400,
+            windowWidth: 1400
+        }).then(canvas => {
+            captureNode.style.position = 'absolute';
+            captureNode.style.left = '-99999px';
+
             const link = document.createElement('a');
-            link.download = fileName + '.png';
+            link.download = fileName + '_' + new Date().toISOString().slice(0, 10) + '.png';
             link.href = canvas.toDataURL("image/png", 1.0);
             link.click();
+        }).catch(err => {
+            console.error("HD Download Error:", err);
+            captureNode.style.position = 'absolute';
+            captureNode.style.left = '-99999px';
+            alert("Unable to generate HD Image. Please try again.");
         });
     }
 
-    async function downloadSelectedHDQRs() {
-        const list = document.getElementById('qrList');
-        list.innerHTML = '';
+    async function printBatchQRCards(perPage = 8) {
+        let listToPrint = [];
         const selectedCheckboxes = document.querySelectorAll('.st-select-item:checked');
-        if (selectedCheckboxes.length === 0) { alert("Select at least one student!"); return; }
+        
+        if (selectedCheckboxes.length > 0) {
+            selectedCheckboxes.forEach(cb => {
+                const stId = cb.getAttribute('data-id');
+                const st = students.find(s => String(s.id) === String(stId));
+                if (st) listToPrint.push(st);
+            });
+        } else {
+            if (!confirm(`No students selected via checkboxes. Print all ${students.length} students Official ID Cards?`)) return;
+            listToPrint = [...students];
+        }
 
-        selectedCheckboxes.forEach((cb, currentIdx) => {
-            const studentIndex = cb.getAttribute('data-idx');
-            const st = students[studentIndex];
+        if (listToPrint.length === 0) { alert("No students available to print!"); return; }
+
+        const styleElem = document.getElementById('dynamic-print-style');
+        styleElem.innerHTML = "@page { size: A4 portrait; margin: 0; }";
+
+        document.body.classList.remove('print-mode-sheet');
+        document.body.classList.add('print-mode-qr');
+        const container = document.getElementById('qr-print-container');
+        container.innerHTML = '';
+
+        let totalPages = Math.ceil(listToPrint.length / perPage);
+
+        for (let p = 0; p < totalPages; p++) {
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'qr-page';
             
-            const card = document.createElement('div');
-            card.className = 'qr-card';
-            card.innerHTML = `
-                <h2 style="margin:0 0 10px 0; color:${config.titleColor}; font-size:22px;">${config.c || 'OFFICIAL ID CARD'}</h2>
-                <img src="${st.photo || 'https://via.placeholder.com/130x150'}" class="st-photo">
-                <div id="qrd-${currentIdx}" style="margin:10px 0;"></div>
-                <h2 style="margin:3px; font-size:20px; color:${config.titleColor};">${st.name}</h2>
-                <p style="margin:2px; font-size:14px; font-weight:bold; color:#475569;">S/O: ${st.father || '-'}</p>
-                <p style="margin:0; font-size:16px; font-weight:bold;">Roll / ID: ${st.roll}</p>
-            `;
-            list.appendChild(card);
-            new QRCode(document.getElementById(`qrd-${currentIdx}`), { text: st.id, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.H });
-        });
+            const chunk = listToPrint.slice(p * perPage, (p + 1) * perPage);
 
-        await new Promise(r => setTimeout(r, 800));
-        downloadHD('capture-qrs', 'HD_Clear_Student_ID_Cards');
+            chunk.forEach((st, idx) => {
+                const cardIndex = p * perPage + idx;
+                const card = document.createElement('div');
+                card.className = 'qr-card-item';
+                
+                const instName = document.getElementById('classInp').value.trim() || config.c || defaultCollegeName;
+                const stImgSrc = st.photo || 'https://via.placeholder.com/100x120?text=No+Photo';
+                const logoHTML = config.logo ? `<img src="${config.logo}" class="qr-card-logo">` : '';
+
+                card.innerHTML = `
+                    <div class="qr-card-header">
+                        ${logoHTML}
+                        <div class="qr-card-header-title">${instName}</div>
+                    </div>
+                    <div class="qr-card-body">
+                        <img src="${stImgSrc}" class="st-photo-box">
+                        <div class="qr-card-details">
+                            <div><b>Name:</b> ${st.name}</div>
+                            <div><b>Father:</b> ${st.father || '-'}</div>
+                            <div><b>Roll No:</b> ${st.roll}</div>
+                            <div><b>ID:</b> ${st.id}</div>
+                        </div>
+                        <div id="qrbatch-${cardIndex}" class="qr-code-box"></div>
+                    </div>
+                    <div class="qr-card-footer">
+                        Official Student Identity Card
+                    </div>
+                `;
+                pageDiv.appendChild(card);
+            });
+
+            container.appendChild(pageDiv);
+        }
+
+        for (let p = 0; p < totalPages; p++) {
+            const chunk = listToPrint.slice(p * perPage, (p + 1) * perPage);
+            chunk.forEach((st, idx) => {
+                const cardIndex = p * perPage + idx;
+                const qrElem = document.getElementById(`qrbatch-${cardIndex}`);
+                if (qrElem) {
+                    qrElem.innerHTML = '';
+                    new QRCode(qrElem, {
+                        text: String(st.id),
+                        width: 90,
+                        height: 90,
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                }
+            });
+        }
+
+        setTimeout(() => {
+            window.print();
+        }, 500);
     }
 
     async function resetSystem() {
         if(confirm("⚠️ WARNING: This will PERMANENTLY DELETE ALL DATA. Are you sure?")) {
-            const cId = config.clientId || 'default_client';
+            const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
             await db.delete();
             if(firebaseDB) firebaseDB.ref(`clients/${cId}`).remove();
             location.reload();
