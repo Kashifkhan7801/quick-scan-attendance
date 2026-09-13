@@ -14,11 +14,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
-    <!-- Added ExcelJS & FileSaver Libraries for Direct .xlsx Image Export Support -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/file-saver/2.0.5/FileSaver.min.js"></script>
+    <!-- Robust ExcelJS, FileSaver & SheetJS Libraries for Seamless Image Export/Import -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
         :root { --primary: #1e3a8a; --accent: #2563eb; --bg: #0f172a; --gold: #f59e0b; }
@@ -142,83 +142,23 @@
         .pro-badge { background: linear-gradient(45deg, #f59e0b, #d97706); color: black; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 8px; }
 
         @media print {
-            * {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                box-sizing: border-box !important;
-            }
-            html, body { 
-                background: white !important; 
-                color: black !important; 
-                padding: 0 !important; 
-                margin: 0 !important; 
-                width: 100% !important; 
-                height: 100% !important; 
-            }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box !important; }
+            html, body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; width: 100% !important; height: 100% !important; }
             .main-card, .dashboard-grid, .portal-box, .brand-upload-section, .inp-grid, button, #status, #scanner-area, .table-display { display: none !important; }
 
-            body.print-mode-sheet #capture-sheet { 
-                display: block !important; 
-                position: static !important; 
-                width: 100% !important; 
-                margin: 0 !important; 
-                padding: 0 !important; 
-            }
+            body.print-mode-sheet #capture-sheet { display: block !important; position: static !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
             body.print-mode-qr #qr-print-container { display: block !important; position: static !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
             
-            .print-header-box {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                border-radius: 3px !important; 
-                border: 1px solid #000 !important; 
-                padding: 3px 6px !important; 
-                width: 100% !important; 
-                margin-bottom: 2px !important; 
-                box-sizing: border-box !important;
-            }
+            .print-header-box { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; border-radius: 3px !important; border: 1px solid #000 !important; padding: 3px 6px !important; width: 100% !important; margin-bottom: 2px !important; box-sizing: border-box !important; }
 
-            .qr-page { 
-                page-break-after: always !important; 
-                page-break-inside: avoid !important; 
-                margin: 0 auto !important; 
-                padding: 4mm !important;
-                height: 290mm !important;
-                box-sizing: border-box !important;
-            }
+            .qr-page { page-break-after: always !important; page-break-inside: avoid !important; margin: 0 auto !important; padding: 4mm !important; height: 290mm !important; box-sizing: border-box !important; }
             .qr-page:last-child { page-break-after: avoid !important; }
 
-            .print-page { 
-                page-break-after: always !important; 
-                page-break-inside: avoid !important; 
-                display: flex !important; 
-                flex-direction: column !important;
-                justify-content: flex-start !important;
-                width: 100% !important; 
-                padding: 2mm !important; 
-                margin: 0 !important; 
-                box-sizing: border-box !important;
-            }
+            .print-page { page-break-after: always !important; page-break-inside: avoid !important; display: flex !important; flex-direction: column !important; justify-content: flex-start !important; width: 100% !important; padding: 2mm !important; margin: 0 !important; box-sizing: border-box !important; }
             .print-page:last-child { page-break-after: avoid !important; }
 
-            table { 
-                width: 100% !important; 
-                border-collapse: collapse !important; 
-                table-layout: auto !important; 
-                margin-top: 1px !important; 
-                margin-bottom: 2px !important; 
-                border: 1px solid #000 !important;
-            }
-            
-            th, td { 
-                border: 1px solid #000 !important; 
-                font-size: 8px !important; 
-                padding: 2px 1px !important; 
-                text-align: center !important; 
-                font-weight: bold !important; 
-                white-space: nowrap !important; 
-                line-height: 1 !important; 
-            }
-            
+            table { width: 100% !important; border-collapse: collapse !important; table-layout: auto !important; margin-top: 1px !important; margin-bottom: 2px !important; border: 1px solid #000 !important; }
+            th, td { border: 1px solid #000 !important; font-size: 8px !important; padding: 2px 1px !important; text-align: center !important; font-weight: bold !important; white-space: nowrap !important; line-height: 1 !important; }
             tr th:first-child, tr td:first-child { border-left: 1px solid #000 !important; }
             tr th:last-child, tr td:last-child { border-right: 1px solid #000 !important; }
 
@@ -227,15 +167,7 @@
             .status-l { color: #0284c7 !important; font-weight: bold !important; background-color: #e0f2fe !important; }
             .status-sun { color: #d97706 !important; font-weight: bold !important; background-color: #fef3c7 !important; }
             
-            .print-footer-container { 
-                margin-top: 4px !important; 
-                padding: 2px 4px !important; 
-                page-break-inside: avoid !important; 
-                display: flex !important;
-                justify-content: space-between !important;
-                align-items: flex-end !important;
-                width: 100% !important;
-            }
+            .print-footer-container { margin-top: 4px !important; padding: 2px 4px !important; page-break-inside: avoid !important; display: flex !important; justify-content: space-between !important; align-items: flex-end !important; width: 100% !important; }
         }
     </style>
 
@@ -353,7 +285,7 @@
 
         <div class="chart-box" style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
             <h4 style="margin:0 0 5px 0; color:#4ade80;">📊 Excel, Backup & Print Tools</h4>
-            <button class="btn btn-green" onclick="exportToExcel()">📊 Export Attendance Sheet (Excel)</button>
+            <button class="btn btn-green" onclick="exportToExcel()">📊 Export Attendance Sheet with Pictures (Excel)</button>
             
             <div style="display:flex; gap:5px;">
                 <button class="btn btn-blue" onclick="printOfficialSheet('portrait')">📄 Print Full Portrait PDF</button>
@@ -944,121 +876,137 @@
         });
     }
 
-    /* Advanced ExcelJS Native Image Export Function */
+    /* Fixed & Exception-Safe ExcelJS Export Function with Student Photos Included */
     async function exportToExcel() {
-        if (students.length === 0) { 
+        if (!students || students.length === 0) { 
             alert("No student records available to export!"); 
             return; 
         }
 
-        const [year, month] = (config.m || new Date().toISOString().slice(0, 7)).split('-').map(Number);
-        const days = new Date(year, month, 0).getDate();
-
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet("Attendance Report");
-
-        const columns = [
-            { header: "Student Photo", key: "photo", width: 12 },
-            { header: "Roll No", key: "roll", width: 10 },
-            { header: "Student Name", key: "name", width: 22 },
-            { header: "Father Name", key: "father", width: 20 },
-            { header: "Phone", key: "phone", width: 16 }
-        ];
-
-        for (let d = 1; d <= days; d++) {
-            columns.push({ header: `Day ${d}`, key: `day_${d}`, width: 6 });
+        if (typeof ExcelJS === "undefined") {
+            alert("Excel library is loading, please check internet connection or retry.");
+            return;
         }
 
-        columns.push(
-            { header: "Total Present", key: "total_p", width: 14 },
-            { header: "Total Leave", key: "total_l", width: 12 },
-            { header: "Attendance %", key: "attendance_pct", width: 15 }
-        );
+        try {
+            const [year, month] = (config.m || new Date().toISOString().slice(0, 7)).split('-').map(Number);
+            const days = new Date(year, month, 0).getDate();
 
-        worksheet.columns = columns;
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet("Attendance Report");
 
-        const headerRow = worksheet.getRow(1);
-        headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
-        headerRow.fill = {
-            type: "pattern",
-            pattern: "solid",
-            fgColor: { argb: "1E3A8A" }
-        };
-        headerRow.alignment = { vertical: "middle", horizontal: "center" };
-        headerRow.height = 25;
-
-        for (let index = 0; index < students.length; index++) {
-            const st = students[index];
-            const rowIndex = index + 2; 
-            const row = worksheet.getRow(rowIndex);
-            row.height = 45; 
-
-            let totalP = 0, totalL = 0, totalWorkingDays = 0;
-            const rowData = {
-                photo: "",
-                roll: st.roll,
-                name: st.name,
-                father: st.father || "-",
-                phone: st.phone || "-"
-            };
+            const columns = [
+                { header: "Student Photo", key: "photo", width: 14 },
+                { header: "Roll No", key: "roll", width: 10 },
+                { header: "Student Name", key: "name", width: 22 },
+                { header: "Father Name", key: "father", width: 20 },
+                { header: "Phone", key: "phone", width: 16 },
+                { header: "Photo Data (Base64)", key: "photo_data", width: 15 }
+            ];
 
             for (let d = 1; d <= days; d++) {
-                const dt = new Date(year, month - 1, d);
-                const isSunday = dt.getDay() === 0;
-                const recStatus = records[`${config.m}-${d}-${st.id}`];
+                columns.push({ header: `Day ${d}`, key: `day_${d}`, width: 6 });
+            }
 
-                if (isSunday) {
-                    rowData[`day_${d}`] = "OFF";
-                } else {
-                    totalWorkingDays++;
-                    if (recStatus === "P" || recStatus === true) {
-                        rowData[`day_${d}`] = "P";
-                        totalP++;
-                    } else if (recStatus === "L") {
-                        rowData[`day_${d}`] = "L";
-                        totalL++;
+            columns.push(
+                { header: "Total Present", key: "total_p", width: 14 },
+                { header: "Total Leave", key: "total_l", width: 12 },
+                { header: "Attendance %", key: "attendance_pct", width: 15 }
+            );
+
+            worksheet.columns = columns;
+
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true, color: { argb: "FFFFFF" } };
+            headerRow.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "1E3A8A" }
+            };
+            headerRow.alignment = { vertical: "middle", horizontal: "center" };
+            headerRow.height = 25;
+
+            for (let index = 0; index < students.length; index++) {
+                const st = students[index];
+                const rowIndex = index + 2; 
+                const row = worksheet.getRow(rowIndex);
+                row.height = 45; 
+
+                let totalP = 0, totalL = 0, totalWorkingDays = 0;
+                const rowData = {
+                    photo: "",
+                    roll: st.roll,
+                    name: st.name,
+                    father: st.father || "-",
+                    phone: st.phone || "-",
+                    photo_data: st.photo || ""
+                };
+
+                for (let d = 1; d <= days; d++) {
+                    const dt = new Date(year, month - 1, d);
+                    const isSunday = dt.getDay() === 0;
+                    const recStatus = records[`${config.m}-${d}-${st.id}`];
+
+                    if (isSunday) {
+                        rowData[`day_${d}`] = "OFF";
                     } else {
-                        rowData[`day_${d}`] = "A";
+                        totalWorkingDays++;
+                        if (recStatus === "P" || recStatus === true) {
+                            rowData[`day_${d}`] = "P";
+                            totalP++;
+                        } else if (recStatus === "L") {
+                            rowData[`day_${d}`] = "L";
+                            totalL++;
+                        } else {
+                            rowData[`day_${d}`] = "A";
+                        }
+                    }
+                }
+
+                rowData["total_p"] = totalP;
+                rowData["total_l"] = totalL;
+                rowData["attendance_pct"] = (totalWorkingDays > 0 ? ((totalP / totalWorkingDays) * 100).toFixed(1) : "0.0") + "%";
+
+                row.values = rowData;
+
+                row.eachCell({ includeEmpty: true }, (cell) => {
+                    cell.alignment = { vertical: "middle", horizontal: "center" };
+                    cell.border = {
+                        top: { style: 'thin' },
+                        left: { style: 'thin' },
+                        bottom: { style: 'thin' },
+                        right: { style: 'thin' }
+                    };
+                });
+
+                // Safe Base64 Image Ingestion to Prevent Crashes
+                if (st.photo && typeof st.photo === 'string' && st.photo.includes("base64,")) {
+                    try {
+                        let imgExt = "png";
+                        if (st.photo.includes("image/jpeg") || st.photo.includes("image/jpg")) { imgExt = "jpeg"; }
+
+                        const imageId = workbook.addImage({
+                            base64: st.photo,
+                            extension: imgExt
+                        });
+
+                        worksheet.addImage(imageId, {
+                            tl: { col: 0.1, row: rowIndex - 0.9 },
+                            ext: { width: 48, height: 48 }
+                        });
+                    } catch (imgErr) {
+                        console.warn("Skipped invalid photo rendering for student:", st.name, imgErr);
                     }
                 }
             }
 
-            rowData["total_p"] = totalP;
-            rowData["total_l"] = totalL;
-            rowData["attendance_pct"] = (totalWorkingDays > 0 ? ((totalP / totalWorkingDays) * 100).toFixed(1) : "0.0") + "%";
-
-            row.values = rowData;
-
-            row.eachCell({ includeEmpty: true }, (cell) => {
-                cell.alignment = { vertical: "middle", horizontal: "center" };
-                cell.border = {
-                    top: { style: 'thin' },
-                    left: { style: 'thin' },
-                    bottom: { style: 'thin' },
-                    right: { style: 'thin' }
-                };
-            });
-
-            if (st.photo && st.photo.startsWith("data:image")) {
-                try {
-                    const imageId = workbook.addImage({
-                        base64: st.photo,
-                        extension: "png"
-                    });
-
-                    worksheet.addImage(imageId, {
-                        tl: { col: 0.1, row: rowIndex - 0.9 },
-                        ext: { width: 50, height: 50 }
-                    });
-                } catch (imgErr) {
-                    console.error("Image export error for student:", st.name, imgErr);
-                }
-            }
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            saveAs(blob, `Attendance_Report_Backup_${config.m}.xlsx`);
+        } catch (e) {
+            console.error("Excel Export Failure:", e);
+            alert("⚠️ Excel Error: " + (e.message || "Invalid Data Format"));
         }
-
-        const buffer = await workbook.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-        saveAs(blob, `Attendance_Report_${config.m}.xlsx`);
     }
 
     function printOfficialSheet(orientation = 'landscape') {
@@ -1078,6 +1026,7 @@
         }, 300);
     }
 
+    /* Robust Excel Student Import Handler */
     function importFromExcel() {
         const fileInput = document.getElementById('excelImportInp');
         const file = fileInput.files[0];
@@ -1085,36 +1034,41 @@
 
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const sheetName = workbook.SheetNames[0];
-            const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
-            let importedCount = 0;
-            const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
+                let importedCount = 0;
+                const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
 
-            for (let r of rows) {
-                if (!isPro && (students.length + importedCount) >= 10) {
-                    alert(`⚠️ Free Tier Limit Hit (10 Students)! Stopped importing.\nActivate Pro License to import all.`);
-                    break;
+                for (let r of rows) {
+                    if (!isPro && (students.length + importedCount) >= 10) {
+                        alert(`⚠️ Free Tier Limit Hit (10 Students)! Stopped importing.`);
+                        break;
+                    }
+
+                    const name = r["Name"] || r["Student Name"];
+                    const father = r["Father"] || r["Father Name"] || '';
+                    const roll = r["Roll"] || r["Roll No"] || String(Date.now()).slice(-4);
+                    const id = String(r["ID"] || r["QR"] || r["Roll"] || roll);
+                    const phone = String(r["Phone"] || r["WhatsApp"] || '');
+                    const photo = r["Photo Data (Base64)"] || r["Photo"] || r["Image"] || '';
+
+                    if (name && id) {
+                        const stObj = { name, father, roll: String(roll), id, phone, photo: photo };
+                        students.push(stObj);
+                        await db.students.put(stObj);
+                        if (firebaseDB) firebaseDB.ref(`clients/${cId}/students/${sanitizeFirebaseKey(id)}`).set(stObj);
+                        importedCount++;
+                    }
                 }
-
-                const name = r["Name"] || r["Student Name"];
-                const father = r["Father"] || r["Father Name"] || '';
-                const roll = r["Roll"] || r["Roll No"] || String(Date.now()).slice(-4);
-                const id = String(r["ID"] || r["QR"] || r["Roll"] || roll);
-                const phone = String(r["Phone"] || r["WhatsApp"] || '');
-
-                if (name && id) {
-                    const stObj = { name, father, roll: String(roll), id, phone, photo: '' };
-                    students.push(stObj);
-                    await db.students.put(stObj);
-                    if (firebaseDB) firebaseDB.ref(`clients/${cId}/students/${sanitizeFirebaseKey(id)}`).set(stObj);
-                    importedCount++;
-                }
+                alert(`✅ Successfully imported ${importedCount} students!`);
+                drawTable();
+            } catch(err) {
+                alert("Import Error: " + err.message);
             }
-            alert(`✅ Successfully imported ${importedCount} students!`);
-            drawTable();
         };
         reader.readAsArrayBuffer(file);
     }
