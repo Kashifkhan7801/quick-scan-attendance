@@ -24,11 +24,156 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
-        :root { --primary: #1e3a8a; --accent: #2563eb; --bg: #0f172a; --gold: #f59e0b; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: white; margin: 0; padding: 10px; }
-        .main-card { background: #1e293b; padding: 20px; border-radius: 15px; max-width: 1350px; margin: auto; border: 1px solid #334155; }
+        :root { 
+            --primary: #1e3a8a; 
+            --accent: #2563eb; 
+            --bg: #0b0f19; 
+            --surface: #1e293b; 
+            --gold: #f59e0b; 
+            --sidebar-width: 320px;
+        }
         
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--accent); margin-bottom: 20px; padding-bottom: 10px; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg); 
+            color: white; 
+            margin: 0; 
+            padding: 0; 
+            overflow-x: hidden;
+        }
+
+        /* Side Navigation Drawer */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: calc(-1 * var(--sidebar-width));
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: #0f172a;
+            border-right: 1px solid #334155;
+            z-index: 1000;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            display: none;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        /* Top Bar & Header Nav */
+        .top-navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-bottom: 1px solid #334155;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .menu-toggle-btn {
+            background: linear-gradient(135deg, var(--accent), #1d4ed8);
+            border: none;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transition: all 0.2s;
+        }
+
+        .menu-toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        }
+
+        /* Hero / Home Landing Section */
+        .hero-banner {
+            padding: 40px 20px;
+            text-align: center;
+            background: radial-gradient(circle at top, #1e3a8a 0%, #0b0f19 70%);
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .hero-title {
+            font-size: 2.5rem;
+            margin: 10px 0;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .hero-subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            max-width: 700px;
+            margin: 0 auto 25px auto;
+        }
+
+        /* Main Landing Grid */
+        .home-container {
+            max-width: 1350px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .feature-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+
         .inp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px; }
         input[type="text"], input[type="number"], input[type="month"], input[type="password"], select { padding: 10px; background: #334155; border: 1px solid #475569; color: white; border-radius: 8px; width: 100%; box-sizing: border-box; }
 
@@ -39,7 +184,6 @@
         .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-top: 15px; }
         .chart-box { background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #334155; }
 
-        .portal-box { background: linear-gradient(135deg, #1e1b4b, #311b92); border: 2px solid #818cf8; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
         .portal-card-result { background: #0f172a; border-radius: 8px; padding: 12px; margin-top: 10px; border: 1px solid #475569; display: none; }
 
         .table-display { background: white; color: black; padding: 10px; border-radius: 8px; overflow-x: auto; margin-top: 15px; width: 100%; box-sizing: border-box; }
@@ -51,7 +195,6 @@
         .col-name { min-width: 140px !important; text-align: left !important; padding-left: 5px !important; }
         .col-father { min-width: 130px !important; text-align: left !important; padding-left: 5px !important; }
         
-        .th-sunday { background-color: #fef3c7 !important; color: #b45309 !important; }
         .td-sunday { background-color: #fef3c7 !important; color: #d97706 !important; font-weight: bold; }
         .td-leave { background-color: #e0f2fe !important; color: #0284c7 !important; font-weight: bold; }
 
@@ -64,7 +207,7 @@
         .action-buttons-cell { display: inline-flex !important; align-items: center !important; gap: 2px !important; margin-left: 6px !important; vertical-align: middle !important; }
         .day-header { min-width: 18px; width: 18px; white-space: nowrap !important; }
 
-        #capture-sheet { display: block; position: absolute; left: -99999px; top: 0; background: #ffffff !important; color: #000000 !important; padding: 10px; width: 1400px !important; box-sizing: border-box; }
+        #capture-sheet { display: none; background: #ffffff !important; color: #000000 !important; padding: 10px; width: 1400px !important; box-sizing: border-box; }
         #qr-print-container { display: none; background: white; color: black; padding: 0; margin: 0; }
         
         .btn { padding: 10px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; text-transform: uppercase; font-size: 12px; }
@@ -72,7 +215,7 @@
         .btn-green { background: #059669; }
         .btn-purple { background: #7c3aed; }
         .btn-gold { background: var(--gold); color: black; }
-        .btn-red { background: #ef4444; margin-top: 20px; }
+        .btn-red { background: #ef4444; margin-top: 15px; }
         .btn-cam { background: #f59e0b; color: black; font-size: 14px; }
         .btn-ai { background: linear-gradient(45deg, #ec4899, #8b5cf6); color: white; font-size: 14px; }
         
@@ -84,56 +227,109 @@
         .status-badge { text-align: center; background: #059669; padding: 6px; border-radius: 6px; font-size: 12px; margin-bottom: 10px; font-weight: bold; }
         .pro-badge { background: linear-gradient(45deg, #f59e0b, #d97706); color: black; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 8px; }
 
+        /* Panel Accordion Style */
+        .panel-toggle-btn {
+            background: #1e293b;
+            color: #60a5fa;
+            border: 1px solid #334155;
+            padding: 10px;
+            width: 100%;
+            text-align: left;
+            font-weight: bold;
+            font-size: 13px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-toggle-btn:hover {
+            background: #334155;
+        }
+        .panel-content {
+            display: none;
+            margin-top: 5px;
+        }
+
+        /* Fixed Print Grid & Dimensions for 8 ID Cards per Page without Blank Page */
         .qr-page {
             width: 210mm;
-            min-height: 297mm;
-            padding: 8mm;
+            height: 297mm;
+            padding: 5mm;
             box-sizing: border-box;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            grid-gap: 6mm 6mm;
+            grid-template-rows: repeat(4, 66mm);
+            grid-gap: 4mm 5mm;
             align-content: start;
             page-break-after: always;
+            page-break-inside: avoid;
             background: white;
+            overflow: hidden;
+        }
+
+        .qr-page:last-child {
+            page-break-after: auto;
         }
 
         .id-card-item {
-            border: 1.5px solid #1e3a8a;
-            border-radius: 6px;
-            padding: 4px;
+            border: 2px solid #1e3a8a;
+            border-radius: 8px;
+            padding: 6px;
             background: #ffffff;
-            height: 64mm;
+            height: 66mm;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             position: relative;
+            page-break-inside: avoid;
+            box-shadow: inset 0 0 0 1px #cbd5e1;
         }
 
         .id-card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1.5px solid #1e3a8a;
-            padding-bottom: 3px;
-            margin-bottom: 4px;
+            background: #1e3a8a;
+            color: white;
+            padding: 4px;
+            border-radius: 4px;
+            margin-bottom: 2px;
         }
 
-        .id-card-logo { width: 22px; height: 22px; object-fit: contain; }
-        .id-card-header-title { font-size: 8px; font-weight: bold; color: #1e3a8a; text-align: center; flex-grow: 1; text-transform: uppercase; }
-        .id-card-body { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; flex-grow: 1; }
-        .id-card-photo { width: 60px; height: 65px; object-fit: cover; border: 1px solid #334155; border-radius: 4px; }
-        .id-card-details { font-size: 9px; color: #000; line-height: 1.4; flex-grow: 1; padding-left: 8px; text-align: left; }
-        .id-card-details b { color: #0f172a; }
-        .id-card-qr { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
-        .id-card-footer { border-top: 1px solid #94a3b8; text-align: center; font-size: 7px; color: #475569; padding-top: 2px; text-transform: capitalize; font-weight: 500; }
+        .id-card-logo { width: 22px; height: 22px; object-fit: contain; background: white; border-radius: 50%; padding: 1px; }
+        .id-card-header-title { font-size: 8px; font-weight: bold; color: #ffffff; text-align: center; flex-grow: 1; text-transform: uppercase; line-height: 1.1; }
+        .id-card-body { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; flex-grow: 1; gap: 4px; }
+        .id-card-photo { width: 50px; height: 55px; object-fit: cover; border: 1.5px solid #1e3a8a; border-radius: 4px; }
+        .id-card-details { font-size: 8px; color: #000; line-height: 1.3; flex-grow: 1; padding-left: 2px; text-align: left; }
+        .id-card-details b { color: #1e3a8a; }
+        .id-card-qr { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
+        
+        /* Updated Footer Section with Signature Support */
+        .id-card-footer { 
+            border-top: 1px solid #94a3b8; 
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 2px;
+            margin-top: 2px;
+        }
+        .id-card-footer-text { font-size: 6.5px; color: #1e3a8a; text-transform: uppercase; font-weight: bold; align-self: center; }
+        .id-card-sig-container { text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .id-card-sig-img { height: 18px; max-width: 65px; object-fit: contain; margin-bottom: -2px; }
+        .id-card-sig-title { font-size: 6px; font-weight: bold; color: #000; border-top: 1px solid #000; padding-top: 1px; min-width: 50px; text-align: center; }
 
         @media print {
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box !important; }
             html, body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; width: 100% !important; height: 100% !important; }
-            .main-card, .dashboard-grid, .portal-box, .brand-upload-section, .inp-grid, button, #status, #scanner-area, #face-scanner-area, .table-display { display: none !important; }
+            .top-navbar, .hero-banner, .features-grid, .sidebar, .sidebar-overlay, .main-card, .dashboard-grid, .portal-box, .brand-upload-section, .inp-grid, button, #status, #scanner-area, #face-scanner-area, .table-display, .home-container { display: none !important; }
 
             body.print-mode-sheet #capture-sheet { display: block !important; position: static !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            body.print-mode-sheet #qr-print-container { display: none !important; }
+
+            body.print-mode-qr #capture-sheet { display: none !important; }
             body.print-mode-qr #qr-print-container { display: block !important; position: static !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
             
             .print-header-box { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; border-radius: 3px !important; border: 1px solid #000 !important; padding: 3px 6px !important; width: 100% !important; margin-bottom: 2px !important; box-sizing: border-box !important; }
@@ -143,152 +339,227 @@
     </style>
 
     <style id="dynamic-print-style">
-        @page { size: A4 landscape; margin: 3mm; }
+        @page { size: A4 portrait; margin: 0; }
     </style>
 </head>
 <body>
 
-<div class="main-card">
-    <div class="header">
-        <h2 style="margin:0; display:flex; align-items:center;">
-            CS ACADEMY - ENTERPRISE GLOBAL SAAS 
-            <span id="planBadge" class="pro-badge">FREE TIER</span>
-        </h2>
-        <div style="font-size: 12px; font-weight: bold; color: #4ade80;">🌍 AI Face Recognition & GPS Active</div>
+<!-- Left Overlay Shadow -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Left Side Drawer Navigation -->
+<div class="sidebar" id="sidebar">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+        <h3 style="margin:0; color:#60a5fa;">⚙️ System Controls</h3>
+        <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">✕</button>
     </div>
 
-    <div id="status" class="status-badge">🔄 Initializing Cloud & Database...</div>
-    <div id="temp-qr-box"></div>
-
-    <!-- GPS Geo-fencing Controls -->
-    <div class="brand-upload-section" style="border: 2px solid #10b981; background: #064e3b;">
-        <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #6ee7b7; display:flex; justify-content:space-between;">
-            <span>📍 GPS Location Geo-fencing Protection:</span>
-            <span id="gpsStatusText" style="color:#fde047; font-size:11px;">Status: Checking Location...</span>
-        </div>
-        <div class="inp-grid">
-            <div>
-                <label style="font-size:11px; color:#cbd5e1;">Geo-fence Active:</label>
-                <select id="gpsEnableSelect" onchange="syncCfg()">
-                    <option value="disabled">Disabled (Anywhere Allowed)</option>
-                    <option value="enabled">Enabled (Restricted to Campus)</option>
-                </select>
-            </div>
-            <div>
-                <label style="font-size:11px; color:#cbd5e1;">Target Latitude:</label>
-                <input type="number" step="any" id="gpsLatInp" placeholder="e.g. 34.8213" onchange="syncCfg()">
-            </div>
-            <div>
-                <label style="font-size:11px; color:#cbd5e1;">Target Longitude:</label>
-                <input type="number" step="any" id="gpsLngInp" placeholder="e.g. 71.5124" onchange="syncCfg()">
-            </div>
-            <div>
-                <label style="font-size:11px; color:#cbd5e1;">Allowed Radius (Meters):</label>
-                <input type="number" id="gpsRadiusInp" value="100" placeholder="Distance in meters" onchange="syncCfg()">
-            </div>
-        </div>
-        <button class="btn btn-green" onclick="setCurrentLocationAsCampus()" style="padding:6px; font-size:11px;">📍 Set Current Device GPS as College Location</button>
-    </div>
-
-    <div class="brand-upload-section" style="border: 2px solid #f59e0b; background: #0f172a;">
-        <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #fbbf24; display:flex; justify-content:space-between;">
-            <span>🔑 Global Organization License & Pro Subscription:</span>
-            <span id="expiryStatus" style="color:#60a5fa; font-size:11px;">Status: Active</span>
-        </div>
-        <div class="inp-grid">
-            <div>
-                <label style="font-size:11px; color:#cbd5e1;">Client ID / Tenant ID (DB Partition):</label>
-                <input type="text" id="clientIdInp" placeholder="e.g. global_school_01" onchange="syncCfg()">
-            </div>
-            <div>
-                <label style="font-size:11px; color:#cbd5e1;">Pro Subscription Key:</label>
-                <input type="password" id="proKeyInp" placeholder="Enter PRO License Key" onchange="verifyProLicense()">
-            </div>
-            <div>
-                <label style="font-size:11px; color:#cbd5e1;">Student Limit Status:</label>
-                <input type="text" id="studentLimitDisplay" value="Free Tier (Max 10 Students)" disabled style="background:#1e293b; color:#fbbf24; font-weight:bold;">
+    <!-- 1. GPS Geo-fencing Button & Panel -->
+    <button class="panel-toggle-btn" onclick="togglePanelSection('gpsPanel')">
+        <span>📍 GPS Geo-fencing</span> <span>▼</span>
+    </button>
+    <div id="gpsPanel" class="panel-content">
+        <div class="brand-upload-section" style="border: 1px solid #10b981; background: #064e3b; margin-bottom: 10px;">
+            <div style="font-size: 10px; color:#fde047; margin-bottom:8px;" id="gpsStatusText">Status: Checking Location...</div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <div>
+                    <label style="font-size:10px; color:#cbd5e1;">Geo-fence Active:</label>
+                    <select id="gpsEnableSelect" onchange="syncCfg()">
+                        <option value="disabled">Disabled (Anywhere Allowed)</option>
+                        <option value="enabled">Enabled (Restricted)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#cbd5e1;">Target Latitude:</label>
+                    <input type="number" step="any" id="gpsLatInp" placeholder="e.g. 34.8213" onchange="syncCfg()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#cbd5e1;">Target Longitude:</label>
+                    <input type="number" step="any" id="gpsLngInp" placeholder="e.g. 71.5124" onchange="syncCfg()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#cbd5e1;">Allowed Radius (Meters):</label>
+                    <input type="number" id="gpsRadiusInp" value="100" placeholder="Distance in meters" onchange="syncCfg()">
+                </div>
+                <button class="btn btn-green" onclick="setCurrentLocationAsCampus()" style="padding:6px; font-size:10px;">📍 Set Current GPS</button>
             </div>
         </div>
     </div>
 
-    <div class="portal-box">
-        <div style="font-size: 14px; font-weight: bold; color: #a5b4fc; margin-bottom: 6px;">🎓 Student Online Attendance Portal:</div>
-        <div class="inp-grid" style="margin-bottom:0;">
-            <input type="text" id="portalSearchInp" placeholder="Enter Student Roll No / ID...">
-            <button class="btn btn-purple" onclick="searchStudentPortal()" style="margin-top:0;">🔍 Check Attendance Status</button>
-        </div>
-        <div id="portalResult" class="portal-card-result"></div>
-    </div>
-
-    <div class="brand-upload-section" style="border: 1px solid #3b82f6; background: #1e1b4b;">
-        <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #60a5fa;">🔥 Firebase Database Connection:</div>
-        <div class="inp-grid">
-            <input type="text" id="fbApiKey" placeholder="API Key">
-            <input type="text" id="fbAuthDomain" placeholder="Auth Domain">
-            <input type="text" id="fbDbUrl" placeholder="Database URL">
-            <input type="text" id="fbProjectId" placeholder="Project ID">
-        </div>
-        <button class="btn btn-green" onclick="saveFirebaseConfig()" style="padding: 8px;">🔥 Save & Connect Firebase Cloud</button>
-    </div>
-
-    <div class="brand-upload-section">
-        <div style="font-size: 13px; font-weight: bold; margin-bottom: 8px; color: #38bdf8;">🎨 Branding & Customization Settings:</div>
-        <div class="inp-grid">
-            <div style="font-size: 11px;">Upload Logo: <input type="file" id="logoInp" accept="image/*" onchange="uploadBrandImage('logo')"></div>
-            <div style="font-size: 11px;">Upload Header Image: <input type="file" id="principalInp" accept="image/*" onchange="uploadBrandImage('principal')"></div>
-            <div style="font-size: 11px;">Upload Signature: <input type="file" id="sigInp" accept="image/*" onchange="uploadBrandImage('sig')"></div>
-        </div>
-        <div class="inp-grid">
-            <div>Title Text Color: <input type="color" id="titleColorInp" class="color-inp" value="#ffffff" onchange="syncCfg()"></div>
-            <div>Header Background Color: <input type="color" id="headerBgInp" class="color-inp" value="#1e3a8a" onchange="syncCfg()"></div>
-            <input type="text" id="sigTitleInp" placeholder="Signature Title (e.g. Principal)" oninput="syncCfg()">
-            <input type="text" id="footerLinkInp" placeholder="Verification Link for QR" oninput="syncCfg()">
-        </div>
-        <div class="inp-grid">
-            <div>
-                <label style="font-size:11px; color:#cbd5e1;">WhatsApp Message Language:</label>
-                <select id="waLangSelect" onchange="syncCfg()">
-                    <option value="pashto">Pashto (پښتـو)</option>
-                    <option value="english">English</option>
-                    <option value="urdu">Urdu (اردو)</option>
-                </select>
-            </div>
-            <div>
-                <label style="font-size:11px; color:#cbd5e1;">Students Per Page (PDF Print):</label>
-                <select id="rowsPerPageSelect" onchange="syncCfg()">
-                    <option value="15">15 Students / Page</option>
-                    <option value="20">20 Students / Page</option>
-                    <option value="25">25 Students / Page</option>
-                    <option value="30">30 Students / Page</option>
-                    <option value="40">40 Students / Page</option>
-                    <option value="10">10 Students / Page</option>
-                    <option value="1000">All Students in 1 Page</option>
-                </select>
+    <!-- 2. Pro Subscription Button & Panel -->
+    <button class="panel-toggle-btn" onclick="togglePanelSection('proPanel')">
+        <span>🔑 Pro Subscription</span> <span>▼</span>
+    </button>
+    <div id="proPanel" class="panel-content">
+        <div class="brand-upload-section" style="border: 1px solid #f59e0b; background: #0f172a; margin-bottom:10px;">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <div>
+                    <label style="font-size:10px; color:#cbd5e1;">Client ID / Tenant ID:</label>
+                    <input type="text" id="clientIdInp" placeholder="e.g. global_school_01" onchange="onClientIdChanged()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#cbd5e1;">Pro Subscription Key:</label>
+                    <input type="password" id="proKeyInp" placeholder="Enter PRO Key" onchange="verifyProLicense()">
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#cbd5e1;">Student Limit Status:</label>
+                    <input type="text" id="studentLimitDisplay" value="Free Tier (Max 10)" disabled style="background:#1e293b; color:#fbbf24; font-weight:bold; font-size:10px;">
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="inp-grid">
-        <input type="text" id="classInp" placeholder="Institution / Class Name" oninput="syncCfg()">
-        <input type="text" id="profInp" placeholder="Instructor / Supervisor" oninput="syncCfg()">
-        <input type="text" id="subInp" placeholder="Subject / Department" oninput="syncCfg()">
-        <input type="month" id="monthInp" onchange="syncCfg()">
+    <!-- 3. Firebase Config Button & Protected Panel -->
+    <button class="panel-toggle-btn" onclick="openFirebaseProtectedPanel()">
+        <span>🔥 Firebase Config</span> <span>🔒</span>
+    </button>
+    <div id="firebasePanel" class="panel-content">
+        <div class="brand-upload-section" style="border: 1px solid #3b82f6; background: #1e1b4b; margin-bottom:10px;">
+            <div style="font-size:10px; color:#93c5fd; margin-bottom:8px;">Authorized Access Granted</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <input type="text" id="fbApiKey" placeholder="API Key">
+                <input type="text" id="fbAuthDomain" placeholder="Auth Domain">
+                <input type="text" id="fbDbUrl" placeholder="Database URL">
+                <input type="text" id="fbProjectId" placeholder="Project ID">
+                <button class="btn btn-green" onclick="saveFirebaseConfig()" style="padding: 6px; font-size:10px;">🔥 Save Firebase</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Attendance Scanners Grid -->
-    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-        <button class="btn btn-cam" onclick="toggleScanner()">📸 Open QR Code Scanner</button>
-        <button class="btn btn-ai" onclick="toggleFaceScanner()">🤖 Open AI Face Recognition Scanner</button>
+    <!-- 4. Branding & Customization Button & Panel -->
+    <button class="panel-toggle-btn" onclick="togglePanelSection('brandingPanel')">
+        <span>🎨 Branding & Customization</span> <span>▼</span>
+    </button>
+    <div id="brandingPanel" class="panel-content">
+        <div class="brand-upload-section" style="margin-bottom:10px;">
+            <div style="display:flex; flex-direction:column; gap:8px;">
+                <div style="font-size: 10px;">Logo: <input type="file" id="logoInp" accept="image/*" onchange="uploadBrandImage('logo')"></div>
+                <div style="font-size: 10px;">Header: <input type="file" id="principalInp" accept="image/*" onchange="uploadBrandImage('principal')"></div>
+                <div style="font-size: 10px;">Signature: <input type="file" id="sigInp" accept="image/*" onchange="uploadBrandImage('sig')"></div>
+                <div>Title Text Color: <input type="color" id="titleColorInp" class="color-inp" value="#ffffff" onchange="syncCfg()"></div>
+                <div>Header BG Color: <input type="color" id="headerBgInp" class="color-inp" value="#1e3a8a" onchange="syncCfg()"></div>
+                <input type="text" id="sigTitleInp" placeholder="Signature Title" oninput="syncCfg()">
+                <input type="text" id="footerLinkInp" placeholder="QR Link" oninput="syncCfg()">
+                <div>
+                    <label style="font-size:10px; color:#cbd5e1;">WhatsApp Language:</label>
+                    <select id="waLangSelect" onchange="syncCfg()">
+                        <option value="pashto">Pashto (پښتـو)</option>
+                        <option value="english">English</option>
+                        <option value="urdu">Urdu (اردو)</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:10px; color:#cbd5e1;">Students Per Page:</label>
+                    <select id="rowsPerPageSelect" onchange="syncCfg()">
+                        <option value="15">15 / Page</option>
+                        <option value="20">20 / Page</option>
+                        <option value="25">25 / Page</option>
+                        <option value="30">30 / Page</option>
+                        <option value="40">40 / Page</option>
+                        <option value="10">10 / Page</option>
+                        <option value="1000">All in 1 Page</option>
+                    </select>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- 5. Excel, Backup & Print Tools Button & Panel -->
+    <button class="panel-toggle-btn" onclick="togglePanelSection('toolsPanel')">
+        <span>📊 Excel, Backup & Print Tools</span> <span>▼</span>
+    </button>
+    <div id="toolsPanel" class="panel-content">
+        <div class="brand-upload-section" style="margin-bottom:10px; display:flex; flex-direction:column; gap:8px;">
+            <button class="btn btn-green" onclick="exportToExcel()">📊 Export Sheet (Excel)</button>
+            <div style="display:flex; gap:5px;">
+                <button class="btn btn-blue" onclick="printOfficialSheet('portrait')">📄 Portrait PDF</button>
+                <button class="btn btn-purple" onclick="printOfficialSheet('landscape')">🖼️ Landscape PDF</button>
+            </div>
+            <button class="btn btn-gold" onclick="backupJSONData()">💾 Cloud JSON Backup Export</button>
+            <div style="font-size:10px; color:#cbd5e1;">Import Students (.xlsx / .csv):</div>
+            <input type="file" id="excelImportInp" accept=".xlsx, .xls, .csv" style="font-size:10px;">
+            <button class="btn btn-purple" onclick="importFromExcel()">📥 Import Students</button>
+        </div>
+    </div>
+
+    <!-- 6. RESET SYSTEM DATA Button -->
+    <button class="btn btn-red" onclick="resetSystem()">⚠️ RESET SYSTEM DATA</button>
+</div>
+
+<!-- Top Sticky Navbar -->
+<div class="top-navbar">
+    <button class="menu-toggle-btn" onclick="toggleSidebar()">
+        <span>☰</span> System Panel & Controls
+    </button>
+    <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-weight:bold; font-size:14px; color:#e2e8f0;">CS ACADEMY ENTERPRISE</span>
+        <span id="planBadge" class="pro-badge">FREE TIER</span>
+    </div>
+</div>
+
+<!-- Hero Section / Home Page Landing -->
+<div class="hero-banner">
+    <div style="font-size: 12px; font-weight: bold; color: #4ade80; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">🌍 Smart Attendance System</div>
+    <h1 class="hero-title">AI-Powered Face & QR Code Attendance System</h1>
+    <p class="hero-subtitle">Advanced Multi-Tenant Cloud SaaS Attendance Solution with Real-time GPS Geo-fencing Protection & Automated Analytics.</p>
+    
+    <div id="status" class="status-badge" style="max-width: 400px; margin: 0 auto;">🔄 Initializing Cloud & Database...</div>
+</div>
+
+<div class="home-container">
+
+    <!-- High Impact Features Showcase / Scanners Area -->
+    <div class="features-grid">
+        <!-- Feature Card 1: QR Scanner -->
+        <div class="feature-card" style="border-top: 4px solid #f59e0b;">
+            <div class="feature-icon">📸</div>
+            <h3 style="margin: 0 0 10px 0; color: #fbbf24;">QR Code Scanner</h3>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Fast automated attendance using encrypted student QR ID Cards.</p>
+            <button class="btn btn-cam" onclick="toggleScanner()">📸 Open QR Scanner</button>
+        </div>
+
+        <!-- Feature Card 2: AI Face Recognition -->
+        <div class="feature-card" style="border-top: 4px solid #ec4899;">
+            <div class="feature-icon">🤖</div>
+            <h3 style="margin: 0 0 10px 0; color: #f472b6;">AI Face Recognition</h3>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Touchless attendance verification powered by browser-based AI vision models.</p>
+            <button class="btn btn-ai" onclick="toggleFaceScanner()">🤖 Open AI Face Scanner</button>
+        </div>
+
+        <!-- Feature Card 3: Student Search Portal -->
+        <div class="feature-card" style="border-top: 4px solid #818cf8;">
+            <div class="feature-icon">🎓</div>
+            <h3 style="margin: 0 0 10px 0; color: #a5b4fc;">Online Student Portal</h3>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Search real-time attendance stats and monthly logs instantly.</p>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="portalSearchInp" placeholder="Roll No..." style="font-size:11px; padding:6px;">
+                <button class="btn btn-purple" onclick="searchStudentPortal()" style="margin-top:0; padding:6px; width:auto;">🔍 Check</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Scanner Viewports -->
     <div id="scanner-area"><div id="reader"></div></div>
     
-    <!-- AI Face Recognition Camera Area -->
     <div id="face-scanner-area">
         <video id="face-video" autoplay playsinline muted></video>
         <canvas id="face-canvas"></canvas>
     </div>
 
+    <div id="portalResult" class="portal-card-result"></div>
+
+    <!-- General Institution Config inputs -->
+    <div class="main-card" style="margin-bottom:20px;">
+        <h4 style="margin:0 0 10px 0; color:#38bdf8;">🏫 Active Institution Information</h4>
+        <div class="inp-grid" style="margin-bottom:0;">
+            <input type="text" id="classInp" placeholder="Institution / Class Name" oninput="syncCfg()">
+            <input type="text" id="profInp" placeholder="Instructor / Supervisor" oninput="syncCfg()">
+            <input type="text" id="subInp" placeholder="Subject / Department" oninput="syncCfg()">
+            <input type="month" id="monthInp" onchange="syncCfg()">
+        </div>
+    </div>
+
+    <!-- Main Analytics & Export Tools -->
     <div class="dashboard-grid">
         <div class="chart-box">
             <h4 style="margin:0 0 10px 0; color:#38bdf8;">📊 Student Attendance Analytics Dashboard</h4>
@@ -296,48 +567,70 @@
         </div>
 
         <div class="chart-box" style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
-            <h4 style="margin:0 0 5px 0; color:#4ade80;">📊 Excel, Backup & Print Tools</h4>
-            <button class="btn btn-green" onclick="exportToExcel()">📊 Export Attendance Sheet with Pictures (Excel)</button>
-            
-            <div style="display:flex; gap:5px;">
-                <button class="btn btn-blue" onclick="printOfficialSheet('portrait')">📄 Print Full Portrait PDF</button>
-                <button class="btn btn-purple" onclick="printOfficialSheet('landscape')">🖼️ Print Full Landscape PDF</button>
-            </div>
-
+            <h4 style="margin:0 0 5px 0; color:#4ade80;">📊 Quick Action Dashboard</h4>
+            <button class="btn btn-green" onclick="exportToExcel()">📊 Export Sheet (Excel)</button>
+            <button class="btn btn-purple" onclick="printOfficialSheet('landscape')">🖼️ Landscape PDF</button>
             <button class="btn btn-gold" onclick="backupJSONData()">💾 Cloud JSON Backup Export</button>
-            <div style="font-size:11px; margin-top:5px; color:#cbd5e1;">Import Students via Excel (.xlsx / .csv):</div>
-            <input type="file" id="excelImportInp" accept=".xlsx, .xls, .csv" style="font-size:11px;">
-            <button class="btn btn-purple" onclick="importFromExcel()">📥 Import Students List</button>
         </div>
     </div>
 
-    <div class="inp-grid" style="margin-top:15px; background: #1e293b; padding: 12px; border-radius: 10px; border:1px solid #334155;">
+    <!-- Add/Edit Student Form -->
+    <div class="inp-grid" style="margin-top:15px; background: #1e293b; padding: 15px; border-radius: 12px; border:1px solid #334155;">
         <input type="hidden" id="editStudentId" value="">
         <input type="text" id="stN" placeholder="Student Name">
         <input type="text" id="stF" placeholder="Father's Name">
         <input type="text" id="stR" placeholder="Roll No / ID">
         <input type="text" id="stI" placeholder="QR Code Value">
-        <input type="text" id="stPhone" placeholder="WhatsApp Phone (+923001234567)">
-        <div style="font-size: 11px;">Photo (Used for AI Face Match): <input type="file" id="stPhoto" accept="image/*"></div>
+        <input type="text" id="stPhone" placeholder="WhatsApp (+923001234567)">
+        <div style="font-size: 11px;">Photo (Used for AI Match): <input type="file" id="stPhoto" accept="image/*"></div>
         <button class="btn btn-green" id="addBtn" onclick="addOrUpdateStudent()">+ Add Student</button>
     </div>
 
+    <!-- Attendance Sheet Display -->
     <div class="table-display"><div id="table-content"></div></div>
 
+    <!-- Action Toolbar -->
     <div class="inp-grid" style="margin-top:20px;">
-        <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'Full_Attendance_Sheet')">🖼️ Download Clear Sheet Image</button>
-        <button class="btn btn-green" onclick="printSelectedStudentsSheet()">🖨️ Print Selected Sheet (Page Safe)</button>
-        <button class="btn btn-purple" onclick="printBatchQRCards(8)">🖨️ Print Official ID Cards (8 Cards / Page A4)</button>
-        <button class="btn btn-green" style="background:#25d366; color:black;" onclick="sendWhatsAppBulkSelected()">💬 Send Custom WhatsApp Alert</button>
+        <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'Full_Attendance_Sheet')">🖼️ Download Sheet Image</button>
+        <button class="btn btn-green" onclick="printSelectedStudentsSheet()">🖨️ Print Selected Sheet</button>
+        <button class="btn btn-purple" onclick="printBatchQRCards(8)">🖨️ Print ID Cards (8 / Page)</button>
+        <button class="btn btn-green" style="background:#25d366; color:black;" onclick="sendWhatsAppBulkSelected()">💬 Send WhatsApp Alert</button>
     </div>
 
-    <button class="btn btn-red" onclick="resetSystem()">⚠️ Reset All Data (Clear Database)</button>
 </div>
 
+<div id="temp-qr-box"></div>
 <div id="capture-sheet"></div>
 <div id="qr-print-container"></div>
 
 <script>
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+    }
+
+    /* Accordion Control Function */
+    function togglePanelSection(panelId) {
+        const p = document.getElementById(panelId);
+        if (p.style.display === "block") {
+            p.style.display = "none";
+        } else {
+            p.style.display = "block";
+        }
+    }
+
+    /* Protected Firebase Panel Password Check Function */
+    function openFirebaseProtectedPanel() {
+        const pwd = prompt("Please enter password to access Firebase Config:");
+        if (pwd === "Kashifkhan70017") {
+            togglePanelSection('firebasePanel');
+        } else if (pwd !== null) {
+            alert("❌ Incorrect Password! Access Denied.");
+        }
+    }
+
     const db = new Dexie("CS_Academy_Enterprise_DB");
     db.version(2).stores({
         students: 'id, name, father, roll, phone',
@@ -352,6 +645,7 @@
     let faceStream = null;
     let isFaceScanning = false;
     let userCurrentLocation = { lat: null, lng: null };
+    let currentFirebaseListener = null;
     
     const defaultCollegeName = "GOVERNMENT DEGREE COLLEGE BARKHALOZAI DISTRICT BAJAUR(BSCS)";
     
@@ -402,7 +696,7 @@
         const labeledDescriptors = [];
 
         for (let st of students) {
-            if (st.photo && st.photo.includes("data:image")) {
+            if (st.photo && typeof st.photo === 'string' && st.photo.includes("data:image")) {
                 try {
                     const img = await faceapi.fetchImage(st.photo);
                     const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
@@ -418,6 +712,8 @@
         if (labeledDescriptors.length > 0) {
             faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
             console.log("🤖 AI Face Matcher Trained for Students!");
+        } else {
+            faceMatcher = null;
         }
     }
 
@@ -449,7 +745,7 @@
 
     function checkGPSValidity() {
         if (config.gpsEnable !== 'enabled') {
-            document.getElementById('gpsStatusText').innerText = "Status: Geo-fencing Disabled (Free Access)";
+            document.getElementById('gpsStatusText').innerText = "Status: Geo-fencing Disabled";
             return true;
         }
 
@@ -510,12 +806,24 @@
         return key ? String(key).replace(/[.#$\[\]]/g, "_") : "default_key";
     }
 
+    function onClientIdChanged() {
+        syncCfg();
+        if(firebaseDB) {
+            fetchClientFullDataCloud(config.clientId);
+        }
+    }
+
     function fetchClientFullDataCloud(cId) {
         if (!firebaseDB || !cId) return;
         const safeCId = sanitizeFirebaseKey(cId);
         const dbRef = firebaseDB.ref(`clients/${safeCId}`);
         
-        dbRef.on('value', async (snapshot) => {
+        if (currentFirebaseListener) {
+            currentFirebaseListener.off();
+        }
+
+        currentFirebaseListener = dbRef;
+        currentFirebaseListener.on('value', async (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 if (data.config) {
@@ -539,6 +847,9 @@
                         if(st && st.id) await db.students.put(st); 
                     }
                     buildFaceMatcher();
+                } else {
+                    students = [];
+                    await db.students.clear();
                 }
 
                 if (data.records) {
@@ -547,8 +858,17 @@
                     for (let k in records) { 
                         await db.records.put({ key: k, val: records[k] }); 
                     }
+                } else {
+                    records = {};
+                    await db.records.clear();
                 }
 
+                drawTable();
+            } else {
+                students = [];
+                records = {};
+                await db.students.clear();
+                await db.records.clear();
                 drawTable();
             }
         });
@@ -583,13 +903,13 @@
             document.getElementById('planBadge').innerText = "PRO UNLIMITED";
             document.getElementById('planBadge').style.background = "linear-gradient(45deg, #10b981, #059669)";
             document.getElementById('planBadge').style.color = "white";
-            document.getElementById('studentLimitDisplay').value = "Pro Plan: Unlimited Access";
+            document.getElementById('studentLimitDisplay').value = "Pro Plan: Unlimited";
             document.getElementById('studentLimitDisplay').style.color = "#4ade80";
         } else {
             isPro = false;
             document.getElementById('planBadge').innerText = "FREE TIER";
             document.getElementById('planBadge').style.background = "linear-gradient(45deg, #f59e0b, #d97706)";
-            document.getElementById('studentLimitDisplay').value = "Free Tier (Max 10 Students)";
+            document.getElementById('studentLimitDisplay').value = "Free Tier (Max 10)";
             document.getElementById('studentLimitDisplay').style.color = "#fbbf24";
         }
         syncCfg();
@@ -766,7 +1086,6 @@
         }
     }
 
-    // UPDATED FUNCTION: SWITCH AI FACE SCANNER TO BACK CAMERA
     async function toggleFaceScanner() {
         if (!checkGPSValidity()) {
             alert("❌ Geo-fencing Violation: You are outside the authorized campus area!");
@@ -785,23 +1104,24 @@
         }
 
         if (!faceMatcher) {
-            alert("⚠️ Face AI models or Student photos are not ready! Please upload photos for students first.");
-            return;
+            await buildFaceMatcher();
+            if (!faceMatcher) {
+                alert("⚠️ Face AI models or Student photos are not ready! Please upload valid photos for students first.");
+                return;
+            }
         }
 
         area.style.display = 'block';
         isFaceScanning = true;
 
         try {
-            // Priority: Attempting Back Camera first
             try {
                 faceStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: { exact: "environment" } }
                 });
             } catch (errBack) {
-                // Fallback to standard environment camera or general default video stream
                 faceStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment" }
+                    video: true
                 });
             }
 
@@ -814,25 +1134,29 @@
                 const faceInterval = setInterval(async () => {
                     if (!isFaceScanning) { clearInterval(faceInterval); return; }
 
-                    const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                    
-                    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    resizedDetections.forEach(detection => {
-                        const result = faceMatcher.findBestMatch(detection.descriptor);
-                        const box = detection.detection.box;
-                        const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
-                        drawBox.draw(canvas);
+                    try {
+                        const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+                        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                        
+                        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+                        
+                        resizedDetections.forEach(detection => {
+                            const result = faceMatcher.findBestMatch(detection.descriptor);
+                            const box = detection.detection.box;
+                            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
+                            drawBox.draw(canvas);
 
-                        if (result.label !== 'unknown') {
-                            markStudentAttendance(result.label);
-                        }
-                    });
+                            if (result.label !== 'unknown') {
+                                markStudentAttendance(result.label);
+                            }
+                        });
+                    } catch (scanErr) {
+                        console.warn("Face matching frame skip:", scanErr);
+                    }
                 }, 500);
             });
         } catch (err) {
-            alert("Camera Access Denied or Back Camera not available!");
+            alert("Camera Access Denied or Video Device Error!");
             area.style.display = 'none';
             isFaceScanning = false;
         }
@@ -847,7 +1171,9 @@
         if(st && records[key] !== "P") {
             records[key] = "P";
             await db.records.put({ key: key, val: "P" });
-            if(firebaseDB) firebaseDB.ref(`clients/${cId}/records/${sanitizeFirebaseKey(key)}`).set("P");
+            if(firebaseDB) {
+                firebaseDB.ref(`clients/${cId}/records/${sanitizeFirebaseKey(key)}`).set("P");
+            }
             drawTable();
             alert(`🤖 AI Verified & Attendance Marked Present for ${st.name}!`);
             if(st.phone) { sendWhatsAppAlertById(st.id, day); }
@@ -1000,7 +1326,9 @@
         }
         
         await db.students.put(stObj);
-        if(firebaseDB) firebaseDB.ref(`clients/${cId}/students/${safeId}`).set(stObj);
+        if(firebaseDB) {
+            firebaseDB.ref(`clients/${cId}/students/${safeId}`).set(stObj);
+        }
 
         document.getElementById('editStudentId').value = "";
         document.getElementById('stN').value = ''; document.getElementById('stF').value = ''; 
@@ -1542,6 +1870,7 @@
     function downloadHD(divId, fileName) {
         const captureNode = document.getElementById(divId);
         
+        captureNode.style.display = 'block';
         captureNode.style.position = 'fixed';
         captureNode.style.left = '0px';
         captureNode.style.top = '0px';
@@ -1558,8 +1887,8 @@
             width: 1400,
             windowWidth: 1400
         }).then(canvas => {
-            captureNode.style.position = 'absolute';
-            captureNode.style.left = '-99999px';
+            captureNode.style.display = 'none';
+            captureNode.style.position = 'static';
 
             const link = document.createElement('a');
             link.download = fileName + '_' + new Date().toISOString().slice(0, 10) + '.png';
@@ -1609,6 +1938,10 @@
                 const instName = document.getElementById('classInp').value.trim() || config.c || defaultCollegeName;
                 const stImgSrc = st.photo || 'https://via.placeholder.com/100x120?text=No+Photo';
                 const logoHTML = config.logo ? `<img src="${config.logo}" class="id-card-logo">` : `<div style="width:22px;"></div>`;
+                
+                // Dynamic Signature Image and Title for Card Footer
+                const sigImgHTML = config.sig ? `<img src="${config.sig}" class="id-card-sig-img">` : '';
+                const sigTitleText = config.sigTitle ? config.sigTitle : 'Principal Signature';
 
                 card.innerHTML = `
                     <div class="id-card-header">
@@ -1626,7 +1959,11 @@
                         <div id="qrbatch-${cardIndex}" class="id-card-qr"></div>
                     </div>
                     <div class="id-card-footer">
-                        Official Student Identity Card
+                        <span class="id-card-footer-text">Official Student Identity Card</span>
+                        <div class="id-card-sig-container">
+                            ${sigImgHTML}
+                            <span class="id-card-sig-title">${sigTitleText}</span>
+                        </div>
                     </div>
                 `;
                 pageDiv.appendChild(card);
@@ -1644,25 +1981,28 @@
                     qrElem.innerHTML = '';
                     new QRCode(qrElem, {
                         text: String(st.id),
-                        width: 55,
-                        height: 55,
+                        width: 45,
+                        height: 45,
                         correctLevel: QRCode.CorrectLevel.H
                     });
                 }
             });
         }
 
-        setTimeout(() => { window.print(); }, 500);
+        setTimeout(() => { window.print(); }, 400);
     }
 
     async function resetSystem() {
-        if(confirm("⚠️ WARNING: Permanent Reset All System Data?")) {
-            const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
-            await db.delete();
-            if(firebaseDB) firebaseDB.ref(`clients/${cId}`).remove();
-            location.reload();
+        if (confirm("⚠️ WARNING: Are you sure you want to reset all local students and attendance records?")) {
+            await db.students.clear();
+            await db.records.clear();
+            students = [];
+            records = {};
+            drawTable();
+            alert("System reset completed successfully!");
         }
     }
 </script>
+
 </body>
 </html>
