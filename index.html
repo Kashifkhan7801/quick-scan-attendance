@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CS Academy Enterprise - Global Multi-Tenant SaaS Pro</title>
+    <title>CS Academy Enterprise - Attendance & ID SaaS Portal</title>
     
     <!-- External Libraries -->
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -24,6 +24,8 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,700;1,700&display=swap');
+
         :root { 
             --primary: #1e3a8a; 
             --accent: #2563eb; 
@@ -42,7 +44,100 @@
             overflow-x: hidden;
         }
 
-        /* Side Navigation Drawer */
+        .kalima-banner {
+            background: linear-gradient(135deg, #064e3b, #047857);
+            color: #fef08a;
+            font-family: 'Amiri', serif;
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            padding: 6px 10px;
+            letter-spacing: 1px;
+            border-bottom: 2px solid var(--gold);
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+        }
+
+        #mainAppWrapper {
+            display: none;
+        }
+
+        /* Attendance result notifications */
+        #attendanceToastContainer {
+            position: fixed;
+            top: 22px;
+            right: 22px;
+            z-index: 30000;
+            width: min(380px, calc(100vw - 32px));
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .attendance-toast {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,.18);
+            box-shadow: 0 14px 35px rgba(0,0,0,.45);
+            color: #fff;
+            font-weight: 700;
+            animation: attendanceToastIn .25s ease-out;
+            backdrop-filter: blur(10px);
+        }
+        .attendance-toast.present { background: linear-gradient(135deg,#047857,#10b981); }
+        .attendance-toast.already { background: linear-gradient(135deg,#92400e,#f59e0b); color:#111827; }
+        .attendance-toast.error { background: linear-gradient(135deg,#991b1b,#ef4444); }
+        .attendance-toast .toast-icon { font-size: 24px; }
+        .attendance-toast .toast-text { flex: 1; line-height: 1.25; }
+        .attendance-toast .toast-title { font-size: 15px; }
+        .attendance-toast .toast-time { font-size: 11px; opacity: .85; margin-top: 3px; font-weight: 500; }
+        .attendance-toast.hide { animation: attendanceToastOut .25s ease-in forwards; }
+        @keyframes attendanceToastIn { from { opacity:0; transform:translateY(-12px) translateX(20px); } to { opacity:1; transform:none; } }
+        @keyframes attendanceToastOut { from { opacity:1; transform:none; } to { opacity:0; transform:translateY(-8px) translateX(20px); } }
+        @media (max-width: 600px) {
+            #attendanceToastContainer { top: 12px; right: 12px; left: 12px; width: auto; }
+        }
+
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-box {
+            background: var(--surface);
+            border: 2px solid var(--accent);
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            text-align: center;
+        }
+
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        .role-admin { background: #ef4444; color: white; }
+        .role-teacher { background: #f59e0b; color: black; }
+        .role-student { background: #10b981; color: white; }
+
         .sidebar {
             position: fixed;
             top: 0;
@@ -59,9 +154,7 @@
             box-shadow: 10px 0 30px rgba(0,0,0,0.5);
         }
 
-        .sidebar.active {
-            left: 0;
-        }
+        .sidebar.active { left: 0; }
 
         .sidebar-overlay {
             position: fixed;
@@ -75,11 +168,8 @@
             display: none;
         }
 
-        .sidebar-overlay.active {
-            display: block;
-        }
+        .sidebar-overlay.active { display: block; }
 
-        /* Top Bar & Header Nav */
         .top-navbar {
             display: flex;
             justify-content: space-between;
@@ -108,21 +198,15 @@
             transition: all 0.2s;
         }
 
-        .menu-toggle-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-        }
-
-        /* Hero / Home Landing Section */
         .hero-banner {
-            padding: 40px 20px;
+            padding: 30px 20px;
             text-align: center;
             background: radial-gradient(circle at top, #1e3a8a 0%, #0b0f19 70%);
             border-bottom: 1px solid #1e293b;
         }
 
         .hero-title {
-            font-size: 2.5rem;
+            font-size: 2.3rem;
             margin: 10px 0;
             background: linear-gradient(to right, #60a5fa, #a78bfa);
             -webkit-background-clip: text;
@@ -132,17 +216,12 @@
 
         .hero-subtitle {
             color: #94a3b8;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             max-width: 700px;
-            margin: 0 auto 25px auto;
+            margin: 0 auto 20px auto;
         }
 
-        /* Main Landing Grid */
-        .home-container {
-            max-width: 1350px;
-            margin: auto;
-            padding: 20px;
-        }
+        .home-container { max-width: 1350px; margin: auto; padding: 20px; }
 
         .features-grid {
             display: grid;
@@ -162,17 +241,7 @@
             overflow: hidden;
         }
 
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: var(--accent);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-        }
-
-        .feature-icon {
-            font-size: 40px;
-            margin-bottom: 15px;
-            display: inline-block;
-        }
+        .feature-icon { font-size: 40px; margin-bottom: 15px; display: inline-block; }
 
         .inp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 15px; }
         input[type="text"], input[type="number"], input[type="month"], input[type="password"], select { padding: 10px; background: #334155; border: 1px solid #475569; color: white; border-radius: 8px; width: 100%; box-sizing: border-box; }
@@ -185,7 +254,6 @@
         .chart-box { background: #0f172a; padding: 15px; border-radius: 10px; border: 1px solid #334155; }
 
         .portal-card-result { background: #0f172a; border-radius: 8px; padding: 12px; margin-top: 10px; border: 1px solid #475569; display: none; }
-
         .table-display { background: white; color: black; padding: 10px; border-radius: 8px; overflow-x: auto; margin-top: 15px; width: 100%; box-sizing: border-box; }
         
         table { width: 100% !important; border-collapse: collapse !important; border: 1px solid #000000 !important; table-layout: auto !important; background-color: #ffffff !important; }
@@ -227,78 +295,14 @@
         .status-badge { text-align: center; background: #059669; padding: 6px; border-radius: 6px; font-size: 12px; margin-bottom: 10px; font-weight: bold; }
         .pro-badge { background: linear-gradient(45deg, #f59e0b, #d97706); color: black; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 8px; }
 
-        /* Panel Accordion Style */
         .panel-toggle-btn {
-            background: #1e293b;
-            color: #60a5fa;
-            border: 1px solid #334155;
-            padding: 10px;
-            width: 100%;
-            text-align: left;
-            font-weight: bold;
-            font-size: 13px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            background: #1e293b; color: #60a5fa; border: 1px solid #334155; padding: 10px; width: 100%; text-align: left; font-weight: bold; font-size: 13px; border-radius: 8px; cursor: pointer; margin-top: 8px; display: flex; justify-content: space-between; align-items: center;
         }
-        .panel-toggle-btn:hover {
-            background: #334155;
-        }
-        .panel-content {
-            display: none;
-            margin-top: 5px;
-        }
+        .panel-content { display: none; margin-top: 5px; }
 
-        /* Fixed Print Grid & Dimensions for 8 ID Cards per Page without Blank Page */
-        .qr-page {
-            width: 210mm;
-            height: 297mm;
-            padding: 5mm;
-            box-sizing: border-box;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: repeat(4, 66mm);
-            grid-gap: 4mm 5mm;
-            align-content: start;
-            page-break-after: always;
-            page-break-inside: avoid;
-            background: white;
-            overflow: hidden;
-        }
-
-        .qr-page:last-child {
-            page-break-after: auto;
-        }
-
-        .id-card-item {
-            border: 2px solid #1e3a8a;
-            border-radius: 8px;
-            padding: 6px;
-            background: #ffffff;
-            height: 66mm;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            page-break-inside: avoid;
-            box-shadow: inset 0 0 0 1px #cbd5e1;
-        }
-
-        .id-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #1e3a8a;
-            color: white;
-            padding: 4px;
-            border-radius: 4px;
-            margin-bottom: 2px;
-        }
-
+        .qr-page { width: 210mm; height: 297mm; padding: 5mm; box-sizing: border-box; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(4, 66mm); grid-gap: 4mm 5mm; align-content: start; page-break-after: always; page-break-inside: avoid; background: white; overflow: hidden; }
+        .id-card-item { border: 2px solid #1e3a8a; border-radius: 8px; padding: 6px; background: #ffffff; height: 66mm; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; position: relative; page-break-inside: avoid; box-shadow: inset 0 0 0 1px #cbd5e1; }
+        .id-card-header { display: flex; align-items: center; justify-content: space-between; background: #1e3a8a; color: white; padding: 4px; border-radius: 4px; margin-bottom: 2px; }
         .id-card-logo { width: 22px; height: 22px; object-fit: contain; background: white; border-radius: 50%; padding: 1px; }
         .id-card-header-title { font-size: 8px; font-weight: bold; color: #ffffff; text-align: center; flex-grow: 1; text-transform: uppercase; line-height: 1.1; }
         .id-card-body { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; flex-grow: 1; gap: 4px; }
@@ -306,16 +310,7 @@
         .id-card-details { font-size: 8px; color: #000; line-height: 1.3; flex-grow: 1; padding-left: 2px; text-align: left; }
         .id-card-details b { color: #1e3a8a; }
         .id-card-qr { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
-        
-        /* Updated Footer Section with Signature Support */
-        .id-card-footer { 
-            border-top: 1px solid #94a3b8; 
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding-top: 2px;
-            margin-top: 2px;
-        }
+        .id-card-footer { border-top: 1px solid #94a3b8; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 2px; margin-top: 2px; }
         .id-card-footer-text { font-size: 6.5px; color: #1e3a8a; text-transform: uppercase; font-weight: bold; align-self: center; }
         .id-card-sig-container { text-align: center; display: flex; flex-direction: column; align-items: center; }
         .id-card-sig-img { height: 18px; max-width: 65px; object-fit: contain; margin-bottom: -2px; }
@@ -324,14 +319,11 @@
         @media print {
             * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; box-sizing: border-box !important; }
             html, body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; width: 100% !important; height: 100% !important; }
-            .top-navbar, .hero-banner, .features-grid, .sidebar, .sidebar-overlay, .main-card, .dashboard-grid, .portal-box, .brand-upload-section, .inp-grid, button, #status, #scanner-area, #face-scanner-area, .table-display, .home-container { display: none !important; }
-
+            .kalima-banner, .login-overlay, .top-navbar, .hero-banner, .features-grid, .sidebar, .sidebar-overlay, .main-card, .dashboard-grid, .portal-box, .brand-upload-section, .inp-grid, button, #status, #scanner-area, #face-scanner-area, .table-display, .home-container { display: none !important; }
             body.print-mode-sheet #capture-sheet { display: block !important; position: static !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
             body.print-mode-sheet #qr-print-container { display: none !important; }
-
             body.print-mode-qr #capture-sheet { display: none !important; }
             body.print-mode-qr #qr-print-container { display: block !important; position: static !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
-            
             .print-header-box { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; border-radius: 3px !important; border: 1px solid #000 !important; padding: 3px 6px !important; width: 100% !important; margin-bottom: 2px !important; box-sizing: border-box !important; }
             table { width: 100% !important; border-collapse: collapse !important; table-layout: auto !important; margin-top: 1px !important; margin-bottom: 2px !important; border: 1px solid #000 !important; }
             th, td { border: 1px solid #000 !important; font-size: 8px !important; padding: 2px 1px !important; text-align: center !important; font-weight: bold !important; white-space: nowrap !important; line-height: 1 !important; }
@@ -344,259 +336,287 @@
 </head>
 <body>
 
-<!-- Left Overlay Shadow -->
-<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<div class="kalima-banner">
+    لَا إِلٰهَ إِلَّا اللّٰهُ مُحَمَّدٌ رَّسُولُ اللّٰهِ
+</div>
 
-<!-- Left Side Drawer Navigation -->
-<div class="sidebar" id="sidebar">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-        <h3 style="margin:0; color:#60a5fa;">⚙️ System Controls</h3>
-        <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">✕</button>
-    </div>
-
-    <!-- 1. GPS Geo-fencing Button & Panel -->
-    <button class="panel-toggle-btn" onclick="togglePanelSection('gpsPanel')">
-        <span>📍 GPS Geo-fencing</span> <span>▼</span>
-    </button>
-    <div id="gpsPanel" class="panel-content">
-        <div class="brand-upload-section" style="border: 1px solid #10b981; background: #064e3b; margin-bottom: 10px;">
-            <div style="font-size: 10px; color:#fde047; margin-bottom:8px;" id="gpsStatusText">Status: Checking Location...</div>
-            <div style="display:flex; flex-direction:column; gap:8px;">
-                <div>
-                    <label style="font-size:10px; color:#cbd5e1;">Geo-fence Active:</label>
-                    <select id="gpsEnableSelect" onchange="syncCfg()">
-                        <option value="disabled">Disabled (Anywhere Allowed)</option>
-                        <option value="enabled">Enabled (Restricted)</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:10px; color:#cbd5e1;">Target Latitude:</label>
-                    <input type="number" step="any" id="gpsLatInp" placeholder="e.g. 34.8213" onchange="syncCfg()">
-                </div>
-                <div>
-                    <label style="font-size:10px; color:#cbd5e1;">Target Longitude:</label>
-                    <input type="number" step="any" id="gpsLngInp" placeholder="e.g. 71.5124" onchange="syncCfg()">
-                </div>
-                <div>
-                    <label style="font-size:10px; color:#cbd5e1;">Allowed Radius (Meters):</label>
-                    <input type="number" id="gpsRadiusInp" value="100" placeholder="Distance in meters" onchange="syncCfg()">
-                </div>
-                <button class="btn btn-green" onclick="setCurrentLocationAsCampus()" style="padding:6px; font-size:10px;">📍 Set Current GPS</button>
-            </div>
+<div id="loginPortalModal" class="login-overlay">
+    <div class="login-box">
+        <h2 style="color:#60a5fa; margin-top:0;">🔐 Enterprise Portal Login</h2>
+        <p style="color:#94a3b8; font-size:12px;">Select your account role to proceed</p>
+        
+        <div style="margin-bottom:15px; text-align:left;">
+            <label style="font-size:11px; color:#cbd5e1;">Select Account Role:</label>
+            <select id="userRoleSelect" onchange="updateRoleBadgeUI()" style="margin-top:5px;">
+                <option value="admin">Administrator (Full Access Control)</option>
+                <option value="teacher">Teacher / Supervisor (Attendance & Logs)</option>
+                <option value="student">Student / Parent (View-Only Portal)</option>
+            </select>
         </div>
-    </div>
 
-    <!-- 2. Pro Subscription Button & Panel -->
-    <button class="panel-toggle-btn" onclick="togglePanelSection('proPanel')">
-        <span>🔑 Pro Subscription</span> <span>▼</span>
-    </button>
-    <div id="proPanel" class="panel-content">
-        <div class="brand-upload-section" style="border: 1px solid #f59e0b; background: #0f172a; margin-bottom:10px;">
-            <div style="display:flex; flex-direction:column; gap:8px;">
-                <div>
-                    <label style="font-size:10px; color:#cbd5e1;">Client ID / Tenant ID:</label>
-                    <input type="text" id="clientIdInp" placeholder="e.g. global_school_01" onchange="onClientIdChanged()">
-                </div>
-                <div>
-                    <label style="font-size:10px; color:#cbd5e1;">Pro Subscription Key:</label>
-                    <input type="password" id="proKeyInp" placeholder="Enter PRO Key" onchange="verifyProLicense()">
-                </div>
-                <div>
-                    <label style="font-size:10px; color:#cbd5e1;">Student Limit Status:</label>
-                    <input type="text" id="studentLimitDisplay" value="Free Tier (Max 10)" disabled style="background:#1e293b; color:#fbbf24; font-weight:bold; font-size:10px;">
-                </div>
-            </div>
+        <div id="roleBadgeDisplay" class="role-badge role-admin">Admin Mode</div>
+
+        <div style="margin-bottom:15px;">
+            <input type="password" id="rolePasswordInp" placeholder="Enter System Password..." style="text-align:center;">
         </div>
-    </div>
 
-    <!-- 3. Firebase Config Button & Protected Panel -->
-    <button class="panel-toggle-btn" onclick="openFirebaseProtectedPanel()">
-        <span>🔥 Firebase Config</span> <span>🔒</span>
-    </button>
-    <div id="firebasePanel" class="panel-content">
-        <div class="brand-upload-section" style="border: 1px solid #3b82f6; background: #1e1b4b; margin-bottom:10px;">
-            <div style="font-size:10px; color:#93c5fd; margin-bottom:8px;">Authorized Access Granted</div>
-            <div style="display:flex; flex-direction:column; gap:6px;">
-                <input type="text" id="fbApiKey" placeholder="API Key">
-                <input type="text" id="fbAuthDomain" placeholder="Auth Domain">
-                <input type="text" id="fbDbUrl" placeholder="Database URL">
-                <input type="text" id="fbProjectId" placeholder="Project ID">
-                <button class="btn btn-green" onclick="saveFirebaseConfig()" style="padding: 6px; font-size:10px;">🔥 Save Firebase</button>
-            </div>
+        <button class="btn btn-blue" onclick="attemptPortalLogin()">Login To System</button>
+    </div>
+</div>
+
+<div id="attendanceToastContainer" aria-live="polite" aria-atomic="true"></div>
+
+<div id="mainAppWrapper">
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="sidebar">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <h3 style="margin:0; color:#60a5fa;">⚙️ System Controls</h3>
+            <button onclick="toggleSidebar()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">✕</button>
         </div>
-    </div>
 
-    <!-- 4. Branding & Customization Button & Panel -->
-    <button class="panel-toggle-btn" onclick="togglePanelSection('brandingPanel')">
-        <span>🎨 Branding & Customization</span> <span>▼</span>
-    </button>
-    <div id="brandingPanel" class="panel-content">
-        <div class="brand-upload-section" style="margin-bottom:10px;">
-            <div style="display:flex; flex-direction:column; gap:8px;">
-                <div style="font-size: 10px;">Logo: <input type="file" id="logoInp" accept="image/*" onchange="uploadBrandImage('logo')"></div>
-                <div style="font-size: 10px;">Header: <input type="file" id="principalInp" accept="image/*" onchange="uploadBrandImage('principal')"></div>
-                <div style="font-size: 10px;">Signature: <input type="file" id="sigInp" accept="image/*" onchange="uploadBrandImage('sig')"></div>
-                <div>Title Text Color: <input type="color" id="titleColorInp" class="color-inp" value="#ffffff" onchange="syncCfg()"></div>
-                <div>Header BG Color: <input type="color" id="headerBgInp" class="color-inp" value="#1e3a8a" onchange="syncCfg()"></div>
-                <input type="text" id="sigTitleInp" placeholder="Signature Title" oninput="syncCfg()">
-                <input type="text" id="footerLinkInp" placeholder="QR Link" oninput="syncCfg()">
-                <div>
-                    <label style="font-size:10px; color:#cbd5e1;">WhatsApp Language:</label>
-                    <select id="waLangSelect" onchange="syncCfg()">
-                        <option value="pashto">Pashto (پښتـو)</option>
-                        <option value="english">English</option>
-                        <option value="urdu">Urdu (اردو)</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:10px; color:#cbd5e1;">Students Per Page:</label>
-                    <select id="rowsPerPageSelect" onchange="syncCfg()">
-                        <option value="15">15 / Page</option>
-                        <option value="20">20 / Page</option>
-                        <option value="25">25 / Page</option>
-                        <option value="30">30 / Page</option>
-                        <option value="40">40 / Page</option>
-                        <option value="10">10 / Page</option>
-                        <option value="1000">All in 1 Page</option>
-                    </select>
+        <button class="panel-toggle-btn admin-only" onclick="togglePanelSection('gpsPanel')">
+            <span>📍 GPS Geo-fencing</span> <span>▼</span>
+        </button>
+        <div id="gpsPanel" class="panel-content admin-only">
+            <div class="brand-upload-section" style="border: 1px solid #10b981; background: #064e3b; margin-bottom: 10px;">
+                <div style="font-size: 10px; color:#fde047; margin-bottom:8px;" id="gpsStatusText">Status: Checking Location...</div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div>
+                        <label style="font-size:10px; color:#cbd5e1;">Geo-fence Active:</label>
+                        <select id="gpsEnableSelect" onchange="syncCfg()">
+                            <option value="disabled">Disabled (Anywhere Allowed)</option>
+                            <option value="enabled">Enabled (Restricted Campus)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#cbd5e1;">Target Latitude:</label>
+                        <input type="number" step="any" id="gpsLatInp" placeholder="e.g. 34.8213" onchange="syncCfg()">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#cbd5e1;">Target Longitude:</label>
+                        <input type="number" step="any" id="gpsLngInp" placeholder="e.g. 71.5124" onchange="syncCfg()">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#cbd5e1;">Allowed Radius (Meters):</label>
+                        <input type="number" id="gpsRadiusInp" value="100" placeholder="Distance in meters" onchange="syncCfg()">
+                    </div>
+                    <button class="btn btn-green" onclick="setCurrentLocationAsCampus()" style="padding:6px; font-size:10px;">📍 Set Current Location</button>
                 </div>
             </div>
         </div>
+
+        <button class="panel-toggle-btn admin-only" onclick="togglePanelSection('biometricPanel')">
+            <span>☝️ Biometric Device API Framework</span> <span>▼</span>
+        </button>
+        <div id="biometricPanel" class="panel-content admin-only">
+            <div class="brand-upload-section" style="border: 1px solid #8b5cf6; background: #2e1065; margin-bottom: 10px; font-size:11px; line-height:1.4;">
+                <div style="font-weight:bold; color:#a78bfa; margin-bottom:5px;">Hardware API Sync Endpoint:</div>
+                <div style="background:#0f172a; padding:5px; border-radius:4px; font-family:monospace; color:#34d399; font-size:10px; word-break:break-all;">
+                    POST /api/biometric/sync
+                </div>
+                <p style="color:#cbd5e1; margin: 6px 0;">Send push logs from ZKTeco/Hikvision attendance hardware to automatically sync logs with IndexedDB & Cloud Database.</p>
+                <button class="btn btn-purple" onclick="simulateBiometricPush()" style="padding:4px; font-size:10px;">Test Biometric Push API</button>
+            </div>
+        </div>
+
+        <button class="panel-toggle-btn admin-only" onclick="togglePanelSection('proPanel')">
+            <span>🔑 Pro Subscription</span> <span>▼</span>
+        </button>
+        <div id="proPanel" class="panel-content admin-only">
+            <div class="brand-upload-section" style="border: 1px solid #f59e0b; background: #0f172a; margin-bottom:10px;">
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div>
+                        <label style="font-size:10px; color:#cbd5e1;">Client ID / Tenant ID:</label>
+                        <input type="text" id="clientIdInp" placeholder="e.g. global_school_01" onchange="onClientIdChanged()">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#cbd5e1;">Pro Subscription Key:</label>
+                        <input type="password" id="proKeyInp" placeholder="Enter PRO Key" onchange="verifyProLicense()">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#cbd5e1;">Student Limit Status:</label>
+                        <input type="text" id="studentLimitDisplay" value="Free Tier (Max 10)" disabled style="background:#1e293b; color:#fbbf24; font-weight:bold; font-size:10px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="panel-toggle-btn admin-only" onclick="openFirebaseProtectedPanel()">
+            <span>🔥 Firebase Config</span> <span>🔒</span>
+        </button>
+        <div id="firebasePanel" class="panel-content admin-only">
+            <div class="brand-upload-section" style="border: 1px solid #3b82f6; background: #1e1b4b; margin-bottom:10px;">
+                <div style="font-size:10px; color:#93c5fd; margin-bottom:8px;">Authorized Access Granted</div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <input type="text" id="fbApiKey" placeholder="API Key">
+                    <input type="text" id="fbAuthDomain" placeholder="Auth Domain">
+                    <input type="text" id="fbDbUrl" placeholder="Database URL">
+                    <input type="text" id="fbProjectId" placeholder="Project ID">
+                    <button class="btn btn-green" onclick="saveFirebaseConfig()" style="padding: 6px; font-size:10px;">🔥 Save Firebase Settings</button>
+                </div>
+            </div>
+        </div>
+
+        <button class="panel-toggle-btn admin-only" onclick="togglePanelSection('brandingPanel')">
+            <span>🎨 Branding & Customization</span> <span>▼</span>
+        </button>
+        <div id="brandingPanel" class="panel-content admin-only">
+            <div class="brand-upload-section" style="margin-bottom:10px;">
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="font-size: 10px;">Logo: <input type="file" id="logoInp" accept="image/*" onchange="uploadBrandImage('logo')"></div>
+                    <div style="font-size: 10px;">Header Image: <input type="file" id="principalInp" accept="image/*" onchange="uploadBrandImage('principal')"></div>
+                    <div style="font-size: 10px;">Signature: <input type="file" id="sigInp" accept="image/*" onchange="uploadBrandImage('sig')"></div>
+                    <div>Title Text Color: <input type="color" id="titleColorInp" class="color-inp" value="#ffffff" onchange="syncCfg()"></div>
+                    <div>Header BG Color: <input type="color" id="headerBgInp" class="color-inp" value="#1e3a8a" onchange="syncCfg()"></div>
+                    <input type="text" id="sigTitleInp" placeholder="Signature Title" oninput="syncCfg()">
+                    <input type="text" id="footerLinkInp" placeholder="QR Link" oninput="syncCfg()">
+                    <div>
+                        <label style="font-size:10px; color:#cbd5e1;">WhatsApp Message Language:</label>
+                        <select id="waLangSelect" onchange="syncCfg()">
+                            <option value="english">English</option>
+                            <option value="pashto">Pashto (پښتـو)</option>
+                            <option value="urdu">Urdu (اردو)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#cbd5e1;">Students Per Page:</label>
+                        <select id="rowsPerPageSelect" onchange="syncCfg()">
+                            <option value="15">15 / Page</option>
+                            <option value="20">20 / Page</option>
+                            <option value="25">25 / Page</option>
+                            <option value="30">30 / Page</option>
+                            <option value="40">40 / Page</option>
+                            <option value="10">10 / Page</option>
+                            <option value="1000">All in 1 Page</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="panel-toggle-btn" onclick="togglePanelSection('toolsPanel')">
+            <span>📊 Excel, Backup & Print Tools</span> <span>▼</span>
+        </button>
+        <div id="toolsPanel" class="panel-content">
+            <div class="brand-upload-section" style="margin-bottom:10px; display:flex; flex-direction:column; gap:8px;">
+                <button class="btn btn-green" onclick="exportToExcel()">📊 Export Sheet (Excel)</button>
+                <div style="display:flex; gap:5px;">
+                    <button class="btn btn-blue" onclick="printOfficialSheet('portrait')">📄 Portrait PDF</button>
+                    <button class="btn btn-purple" onclick="printOfficialSheet('landscape')">🖼️ Landscape PDF</button>
+                </div>
+                <button class="btn btn-gold admin-only" onclick="backupJSONData()">💾 Cloud JSON Backup Export</button>
+                <div class="admin-only" style="font-size:10px; color:#cbd5e1;">Import Students (.xlsx / .csv):</div>
+                <input class="admin-only" type="file" id="excelImportInp" accept=".xlsx, .xls, .csv" style="font-size:10px;">
+                <button class="btn btn-purple admin-only" onclick="importFromExcel()">📥 Import Students</button>
+            </div>
+        </div>
+
+        <button class="btn btn-gold" onclick="logoutPortal()" style="margin-top:15px;">🔒 Switch Portal / Logout</button>
+        <button class="btn btn-red admin-only" onclick="resetSystem()">⚠️ RESET SYSTEM DATA</button>
     </div>
 
-    <!-- 5. Excel, Backup & Print Tools Button & Panel -->
-    <button class="panel-toggle-btn" onclick="togglePanelSection('toolsPanel')">
-        <span>📊 Excel, Backup & Print Tools</span> <span>▼</span>
-    </button>
-    <div id="toolsPanel" class="panel-content">
-        <div class="brand-upload-section" style="margin-bottom:10px; display:flex; flex-direction:column; gap:8px;">
-            <button class="btn btn-green" onclick="exportToExcel()">📊 Export Sheet (Excel)</button>
-            <div style="display:flex; gap:5px;">
-                <button class="btn btn-blue" onclick="printOfficialSheet('portrait')">📄 Portrait PDF</button>
+    <div class="top-navbar">
+        <button class="menu-toggle-btn" onclick="toggleSidebar()">
+            <span>☰</span> System Panel & Controls
+        </button>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span id="activeRoleLabel" style="font-size:12px; font-weight:bold; background:#334155; padding:3px 8px; border-radius:6px; color:#60a5fa;">ROLE: ADMIN</span>
+            <span style="font-weight:bold; font-size:14px; color:#e2e8f0;">CS ACADEMY ENTERPRISE</span>
+            <span id="planBadge" class="pro-badge">FREE TIER</span>
+        </div>
+    </div>
+
+    <div class="hero-banner">
+        <div style="font-size: 12px; font-weight: bold; color: #4ade80; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">🌍 Smart Attendance System</div>
+        <h1 class="hero-title">AI-Powered Face & QR Code Attendance System</h1>
+        <p class="hero-subtitle">Advanced Multi-Tenant Cloud SaaS Attendance Solution with Real-time GPS Geo-fencing Protection & Offline PWA Sync.</p>
+        
+        <div id="status" class="status-badge" style="max-width: 400px; margin: 0 auto;">🔄 Initializing Cloud & Database...</div>
+    </div>
+
+    <div class="home-container">
+
+        <div class="features-grid">
+            <div class="feature-card teacher-or-admin" style="border-top: 4px solid #f59e0b;">
+                <div class="feature-icon">📸</div>
+                <h3 style="margin: 0 0 10px 0; color: #fbbf24;">QR Code Scanner</h3>
+                <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Fast automated attendance using encrypted student QR ID Cards.</p>
+                <button class="btn btn-cam" onclick="toggleScanner()">📸 Open QR Scanner</button>
+            </div>
+
+            <div class="feature-card teacher-or-admin" style="border-top: 4px solid #ec4899;">
+                <div class="feature-icon">🤖</div>
+                <h3 style="margin: 0 0 10px 0; color: #f472b6;">AI Face Recognition</h3>
+                <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Touchless attendance verification powered by browser-based AI vision models.</p>
+                <button class="btn btn-ai" onclick="toggleFaceScanner()">🤖 Open AI Face Scanner</button>
+            </div>
+
+            <div class="feature-card" style="border-top: 4px solid #818cf8;">
+                <div class="feature-icon">🎓</div>
+                <h3 style="margin: 0 0 10px 0; color: #a5b4fc;">Online Student Portal</h3>
+                <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Search real-time attendance stats and monthly logs instantly.</p>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="portalSearchInp" placeholder="Roll No..." style="font-size:11px; padding:6px;">
+                    <button class="btn btn-purple" onclick="searchStudentPortal()" style="margin-top:0; padding:6px; width:auto;">🔍 Check</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="scanner-area"><div id="reader"></div></div>
+        
+        <div id="face-scanner-area">
+            <video id="face-video" autoplay playsinline muted></video>
+            <canvas id="face-canvas"></canvas>
+        </div>
+
+        <div id="portalResult" class="portal-card-result"></div>
+
+        <div class="main-card admin-only" style="margin-bottom:20px;">
+            <h4 style="margin:0 0 10px 0; color:#38bdf8;">🏫 Active Institution Information</h4>
+            <div class="inp-grid" style="margin-bottom:0;">
+                <input type="text" id="classInp" placeholder="Institution / Class Name" oninput="syncCfg()">
+                <input type="text" id="profInp" placeholder="Instructor / Supervisor" oninput="syncCfg()">
+                <input type="text" id="subInp" placeholder="Subject / Department" oninput="syncCfg()">
+                <input type="month" id="monthInp" onchange="syncCfg()">
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="chart-box">
+                <h4 style="margin:0 0 10px 0; color:#38bdf8;">📊 Student Attendance Analytics Dashboard</h4>
+                <canvas id="attendanceChart" style="max-height: 200px;"></canvas>
+            </div>
+
+            <div class="chart-box" style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
+                <h4 style="margin:0 0 5px 0; color:#4ade80;">📊 Quick Action Dashboard</h4>
+                <button class="btn btn-green" onclick="exportToExcel()">📊 Export Sheet (Excel)</button>
                 <button class="btn btn-purple" onclick="printOfficialSheet('landscape')">🖼️ Landscape PDF</button>
-            </div>
-            <button class="btn btn-gold" onclick="backupJSONData()">💾 Cloud JSON Backup Export</button>
-            <div style="font-size:10px; color:#cbd5e1;">Import Students (.xlsx / .csv):</div>
-            <input type="file" id="excelImportInp" accept=".xlsx, .xls, .csv" style="font-size:10px;">
-            <button class="btn btn-purple" onclick="importFromExcel()">📥 Import Students</button>
-        </div>
-    </div>
-
-    <!-- 6. RESET SYSTEM DATA Button -->
-    <button class="btn btn-red" onclick="resetSystem()">⚠️ RESET SYSTEM DATA</button>
-</div>
-
-<!-- Top Sticky Navbar -->
-<div class="top-navbar">
-    <button class="menu-toggle-btn" onclick="toggleSidebar()">
-        <span>☰</span> System Panel & Controls
-    </button>
-    <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-weight:bold; font-size:14px; color:#e2e8f0;">CS ACADEMY ENTERPRISE</span>
-        <span id="planBadge" class="pro-badge">FREE TIER</span>
-    </div>
-</div>
-
-<!-- Hero Section / Home Page Landing -->
-<div class="hero-banner">
-    <div style="font-size: 12px; font-weight: bold; color: #4ade80; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">🌍 Smart Attendance System</div>
-    <h1 class="hero-title">AI-Powered Face & QR Code Attendance System</h1>
-    <p class="hero-subtitle">Advanced Multi-Tenant Cloud SaaS Attendance Solution with Real-time GPS Geo-fencing Protection & Automated Analytics.</p>
-    
-    <div id="status" class="status-badge" style="max-width: 400px; margin: 0 auto;">🔄 Initializing Cloud & Database...</div>
-</div>
-
-<div class="home-container">
-
-    <!-- High Impact Features Showcase / Scanners Area -->
-    <div class="features-grid">
-        <!-- Feature Card 1: QR Scanner -->
-        <div class="feature-card" style="border-top: 4px solid #f59e0b;">
-            <div class="feature-icon">📸</div>
-            <h3 style="margin: 0 0 10px 0; color: #fbbf24;">QR Code Scanner</h3>
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Fast automated attendance using encrypted student QR ID Cards.</p>
-            <button class="btn btn-cam" onclick="toggleScanner()">📸 Open QR Scanner</button>
-        </div>
-
-        <!-- Feature Card 2: AI Face Recognition -->
-        <div class="feature-card" style="border-top: 4px solid #ec4899;">
-            <div class="feature-icon">🤖</div>
-            <h3 style="margin: 0 0 10px 0; color: #f472b6;">AI Face Recognition</h3>
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Touchless attendance verification powered by browser-based AI vision models.</p>
-            <button class="btn btn-ai" onclick="toggleFaceScanner()">🤖 Open AI Face Scanner</button>
-        </div>
-
-        <!-- Feature Card 3: Student Search Portal -->
-        <div class="feature-card" style="border-top: 4px solid #818cf8;">
-            <div class="feature-icon">🎓</div>
-            <h3 style="margin: 0 0 10px 0; color: #a5b4fc;">Online Student Portal</h3>
-            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 15px;">Search real-time attendance stats and monthly logs instantly.</p>
-            <div style="display:flex; gap:5px;">
-                <input type="text" id="portalSearchInp" placeholder="Roll No..." style="font-size:11px; padding:6px;">
-                <button class="btn btn-purple" onclick="searchStudentPortal()" style="margin-top:0; padding:6px; width:auto;">🔍 Check</button>
+                <button class="btn btn-gold admin-only" onclick="backupJSONData()">💾 Cloud JSON Backup Export</button>
             </div>
         </div>
-    </div>
 
-    <!-- Active Scanner Viewports -->
-    <div id="scanner-area"><div id="reader"></div></div>
-    
-    <div id="face-scanner-area">
-        <video id="face-video" autoplay playsinline muted></video>
-        <canvas id="face-canvas"></canvas>
-    </div>
-
-    <div id="portalResult" class="portal-card-result"></div>
-
-    <!-- General Institution Config inputs -->
-    <div class="main-card" style="margin-bottom:20px;">
-        <h4 style="margin:0 0 10px 0; color:#38bdf8;">🏫 Active Institution Information</h4>
-        <div class="inp-grid" style="margin-bottom:0;">
-            <input type="text" id="classInp" placeholder="Institution / Class Name" oninput="syncCfg()">
-            <input type="text" id="profInp" placeholder="Instructor / Supervisor" oninput="syncCfg()">
-            <input type="text" id="subInp" placeholder="Subject / Department" oninput="syncCfg()">
-            <input type="month" id="monthInp" onchange="syncCfg()">
-        </div>
-    </div>
-
-    <!-- Main Analytics & Export Tools -->
-    <div class="dashboard-grid">
-        <div class="chart-box">
-            <h4 style="margin:0 0 10px 0; color:#38bdf8;">📊 Student Attendance Analytics Dashboard</h4>
-            <canvas id="attendanceChart" style="max-height: 200px;"></canvas>
+        <div class="inp-grid admin-only" style="margin-top:15px; background: #1e293b; padding: 15px; border-radius: 12px; border:1px solid #334155;">
+            <input type="hidden" id="editStudentId" value="">
+            <input type="text" id="stN" placeholder="Student Name">
+            <input type="text" id="stF" placeholder="Father's Name">
+            <input type="text" id="stR" placeholder="Roll No / ID">
+            <input type="text" id="stI" placeholder="QR Code Value">
+            <input type="text" id="stPhone" placeholder="WhatsApp (+923001234567)">
+            <div style="font-size: 11px;">Photo (Used for AI Match): <input type="file" id="stPhoto" accept="image/*"></div>
+            <button class="btn btn-green" id="addBtn" onclick="addOrUpdateStudent()">+ Add Student</button>
         </div>
 
-        <div class="chart-box" style="display:flex; flex-direction:column; justify-content:center; gap:8px;">
-            <h4 style="margin:0 0 5px 0; color:#4ade80;">📊 Quick Action Dashboard</h4>
-            <button class="btn btn-green" onclick="exportToExcel()">📊 Export Sheet (Excel)</button>
-            <button class="btn btn-purple" onclick="printOfficialSheet('landscape')">🖼️ Landscape PDF</button>
-            <button class="btn btn-gold" onclick="backupJSONData()">💾 Cloud JSON Backup Export</button>
+        <div class="table-display"><div id="table-content"></div></div>
+
+        <div class="inp-grid" style="margin-top:20px;">
+            <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'Full_Attendance_Sheet')">🖼️ Download Sheet Image</button>
+            <button class="btn btn-green" onclick="printSelectedStudentsSheet()">🖨️ Print Selected Sheet</button>
+            <button class="btn btn-purple" onclick="printBatchQRCards(8)">🖨️ Print ID Cards (8 / Page)</button>
+            <button class="btn btn-green teacher-or-admin" style="background:#25d366; color:black;" onclick="sendWhatsAppBulkSelected()">💬 Send WhatsApp Alert</button>
         </div>
+
     </div>
-
-    <!-- Add/Edit Student Form -->
-    <div class="inp-grid" style="margin-top:15px; background: #1e293b; padding: 15px; border-radius: 12px; border:1px solid #334155;">
-        <input type="hidden" id="editStudentId" value="">
-        <input type="text" id="stN" placeholder="Student Name">
-        <input type="text" id="stF" placeholder="Father's Name">
-        <input type="text" id="stR" placeholder="Roll No / ID">
-        <input type="text" id="stI" placeholder="QR Code Value">
-        <input type="text" id="stPhone" placeholder="WhatsApp (+923001234567)">
-        <div style="font-size: 11px;">Photo (Used for AI Match): <input type="file" id="stPhoto" accept="image/*"></div>
-        <button class="btn btn-green" id="addBtn" onclick="addOrUpdateStudent()">+ Add Student</button>
-    </div>
-
-    <!-- Attendance Sheet Display -->
-    <div class="table-display"><div id="table-content"></div></div>
-
-    <!-- Action Toolbar -->
-    <div class="inp-grid" style="margin-top:20px;">
-        <button class="btn btn-blue" onclick="downloadHD('capture-sheet', 'Full_Attendance_Sheet')">🖼️ Download Sheet Image</button>
-        <button class="btn btn-green" onclick="printSelectedStudentsSheet()">🖨️ Print Selected Sheet</button>
-        <button class="btn btn-purple" onclick="printBatchQRCards(8)">🖨️ Print ID Cards (8 / Page)</button>
-        <button class="btn btn-green" style="background:#25d366; color:black;" onclick="sendWhatsAppBulkSelected()">💬 Send WhatsApp Alert</button>
-    </div>
-
 </div>
 
 <div id="temp-qr-box"></div>
@@ -604,6 +624,139 @@
 <div id="qr-print-container"></div>
 
 <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            const swCode = `
+                const CACHE_NAME = 'cs-academy-v1';
+                self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(['/']))); });
+                self.addEventListener('fetch', e => { e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))); });
+            `;
+            const blob = new Blob([swCode], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+        });
+    }
+
+    const PASSWORDS = {
+        admin: "Kashifkhan70017",
+        teacher: "KashifAhmad99701",
+        student: "MyStudent"
+    };
+
+    let activeUserRole = null;
+    let lastScannedTimeMap = {};
+
+    function updateRoleBadgeUI() {
+        const role = document.getElementById('userRoleSelect').value;
+        const badge = document.getElementById('roleBadgeDisplay');
+        if (role === 'admin') {
+            badge.className = "role-badge role-admin";
+            badge.innerText = "Admin Portal (Full Access)";
+        } else if (role === 'teacher') {
+            badge.className = "role-badge role-teacher";
+            badge.innerText = "Teacher Portal (Attendance & Alerts)";
+        } else {
+            badge.className = "role-badge role-student";
+            badge.innerText = "Student/Parent Portal (Read-Only)";
+        }
+    }
+
+    function attemptPortalLogin() {
+        const selectedRole = document.getElementById('userRoleSelect').value;
+        const enteredPwd = document.getElementById('rolePasswordInp').value;
+
+        if (enteredPwd === PASSWORDS[selectedRole]) {
+            activeUserRole = selectedRole;
+            document.getElementById('loginPortalModal').style.display = 'none';
+            document.getElementById('mainAppWrapper').style.display = 'block';
+            document.getElementById('activeRoleLabel').innerText = "ROLE: " + selectedRole.toUpperCase();
+            applyRolePermissions();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+            }
+        } else {
+            alert("❌ Incorrect Password! Please enter valid password.");
+        }
+    }
+
+    function applyRolePermissions() {
+        const adminElements = document.querySelectorAll('.admin-only');
+        const teacherElements = document.querySelectorAll('.teacher-or-admin');
+
+        if (activeUserRole === 'admin') {
+            adminElements.forEach(el => el.style.display = '');
+            teacherElements.forEach(el => el.style.display = '');
+        } else if (activeUserRole === 'teacher') {
+            adminElements.forEach(el => el.style.display = 'none');
+            teacherElements.forEach(el => el.style.display = '');
+        } else {
+            adminElements.forEach(el => el.style.display = 'none');
+            teacherElements.forEach(el => el.style.display = 'none');
+        }
+        drawTable();
+    }
+
+    function logoutPortal() {
+        activeUserRole = null;
+        document.getElementById('rolePasswordInp').value = '';
+        document.getElementById('mainAppWrapper').style.display = 'none';
+        document.getElementById('loginPortalModal').style.display = 'flex';
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function showAttendanceNotification(title, type = 'present', detail = '') {
+        const container = document.getElementById('attendanceToastContainer');
+        if (!container) return;
+
+        const icon = type === 'already' ? '⚠️' : (type === 'error' ? '❌' : '✅');
+        const toast = document.createElement('div');
+        toast.className = `attendance-toast ${type}`;
+        toast.innerHTML = `
+            <div class="toast-icon">${icon}</div>
+            <div class="toast-text">
+                <div class="toast-title">${escapeHtml(title)}</div>
+                ${detail ? `<div class="toast-time">${escapeHtml(detail)}</div>` : ''}
+            </div>`;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => toast.remove(), 300);
+        }, 3200);
+    }
+
+    function playVoiceMessage(text) {
+        if (!('speechSynthesis' in window)) return;
+        try {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.95;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(v => /^en(-US)?$/i.test(v.lang) && /Google|Microsoft|Natural/i.test(v.name))
+                || voices.find(v => /^en/i.test(v.lang));
+            if (preferredVoice) utterance.voice = preferredVoice;
+
+            window.speechSynthesis.speak(utterance);
+        } catch (speechErr) {
+            console.warn('Speech Synthesis Exception:', speechErr);
+        }
+    }
+
+    function simulateBiometricPush() {
+        alert("☝️ Biometric Hardware Endpoint Listening...\nSend HTTP POST requests with JSON payload to sync fingerprint/face logs automatically.");
+    }
+
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebarOverlay');
@@ -611,20 +764,14 @@
         overlay.classList.toggle('active');
     }
 
-    /* Accordion Control Function */
     function togglePanelSection(panelId) {
         const p = document.getElementById(panelId);
-        if (p.style.display === "block") {
-            p.style.display = "none";
-        } else {
-            p.style.display = "block";
-        }
+        p.style.display = (p.style.display === "block") ? "none" : "block";
     }
 
-    /* Protected Firebase Panel Password Check Function */
     function openFirebaseProtectedPanel() {
         const pwd = prompt("Please enter password to access Firebase Config:");
-        if (pwd === "Kashifkhan70017") {
+        if (pwd === PASSWORDS.admin) {
             togglePanelSection('firebasePanel');
         } else if (pwd !== null) {
             alert("❌ Incorrect Password! Access Denied.");
@@ -644,8 +791,13 @@
     let faceMatcher = null;
     let faceStream = null;
     let isFaceScanning = false;
+    let faceProcessing = false;
+    let faceLoopTimer = null;
+    let faceMatcherBuildPromise = null;
+    let faceMatcherBuildVersion = 0;
     let userCurrentLocation = { lat: null, lng: null };
     let currentFirebaseListener = null;
+    let cloudSyncVersion = 0;
     
     const defaultCollegeName = "GOVERNMENT DEGREE COLLEGE BARKHALOZAI DISTRICT BAJAUR(BSCS)";
     
@@ -653,7 +805,7 @@
         clientId: localStorage.getItem('active_client_id') || defaultCollegeName,
         proKey: '',
         c: defaultCollegeName, p: '', s: '', m: '', logo: '', principal: '', sig: '', sigTitle: '', link: '', titleColor: '#ffffff', headerBg: '#1e3a8a',
-        waLang: 'pashto',
+        waLang: 'english',
         rowsPerPage: 15,
         gpsEnable: 'disabled',
         gpsLat: '',
@@ -672,6 +824,7 @@
     const pashtoDaysNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
     window.onload = async () => {
+        updateRoleBadgeUI();
         await loadAllFromIndexedDB();
         initFirebaseConnection();
         initGPSWatch();
@@ -692,29 +845,86 @@
     }
 
     async function buildFaceMatcher() {
-        if (typeof faceapi === 'undefined') return;
-        const labeledDescriptors = [];
+        if (typeof faceapi === 'undefined' || !faceapi.nets) return null;
 
-        for (let st of students) {
-            if (st.photo && typeof st.photo === 'string' && st.photo.includes("data:image")) {
-                try {
-                    const img = await faceapi.fetchImage(st.photo);
-                    const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                    if (detection) {
-                        labeledDescriptors.push(new faceapi.LabeledFaceDescriptors(String(st.id), [detection.descriptor]));
-                    }
-                } catch (err) {
-                    console.warn(`Face extraction failed for ${st.name}:`, err);
+        // Only one matcher build may run at a time.
+        if (faceMatcherBuildPromise) return faceMatcherBuildPromise;
+
+        const buildVersion = ++faceMatcherBuildVersion;
+        const studentSnapshot = Array.isArray(students) ? students.slice() : [];
+
+        faceMatcherBuildPromise = new Promise((resolve) => {
+            const labeledDescriptors = [];
+            let index = 0;
+
+            // IMPORTANT: Do NOT use for/while loops here. Some preview/sandbox
+            // environments stop long synchronous loops after ~400ms. Process
+            // exactly one student per macrotask instead.
+            const processNextStudent = async () => {
+                if (buildVersion !== faceMatcherBuildVersion) {
+                    resolve(faceMatcher);
+                    return;
                 }
-            }
-        }
 
-        if (labeledDescriptors.length > 0) {
-            faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
-            console.log("🤖 AI Face Matcher Trained for Students!");
-        } else {
+                if (index >= studentSnapshot.length) {
+                    if (buildVersion === faceMatcherBuildVersion) {
+                        if (labeledDescriptors.length > 0) {
+                            faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6);
+                            console.log(`🤖 AI Face Matcher ready: ${labeledDescriptors.length} student(s)`);
+                        } else {
+                            faceMatcher = null;
+                            console.log('ℹ️ No valid student face photos available yet.');
+                        }
+                    }
+                    resolve(faceMatcher);
+                    return;
+                }
+
+                const st = studentSnapshot[index++];
+
+                // Schedule the next student as a separate browser task.
+                setTimeout(async () => {
+                    if (buildVersion !== faceMatcherBuildVersion) {
+                        resolve(faceMatcher);
+                        return;
+                    }
+
+                    if (!st || !st.photo || typeof st.photo !== 'string' || !st.photo.includes('data:image')) {
+                        setTimeout(processNextStudent, 0);
+                        return;
+                    }
+
+                    try {
+                        const img = await faceapi.fetchImage(st.photo);
+                        const detection = await faceapi
+                            .detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+                            .withFaceLandmarks()
+                            .withFaceDescriptor();
+
+                        if (detection && detection.descriptor && buildVersion === faceMatcherBuildVersion) {
+                            labeledDescriptors.push(
+                                new faceapi.LabeledFaceDescriptors(String(st.id), [detection.descriptor])
+                            );
+                        }
+                    } catch (err) {
+                        console.warn(`Face extraction skipped for ${st.name || st.id}:`, err);
+                    }
+
+                    // Always yield before processing the next student.
+                    setTimeout(processNextStudent, 0);
+                }, 0);
+            };
+
+            processNextStudent();
+        }).catch((err) => {
+            console.error('Face matcher build error:', err);
             faceMatcher = null;
-        }
+            return null;
+        }).finally(() => {
+            faceMatcherBuildPromise = null;
+        });
+
+        return faceMatcherBuildPromise;
     }
 
     function initGPSWatch() {
@@ -790,14 +1000,14 @@
                     });
                 }
                 firebaseDB = firebase.database();
-                document.getElementById('status').innerText = "✅ Connected to Firebase Cloud";
+                document.getElementById('status').innerText = "✅ Connected to Cloud SaaS";
                 document.getElementById('status').style.background = "#059669";
                 trackSystemUsage();
                 fetchClientFullDataCloud(config.clientId);
             } catch (err) {
                 console.error("Firebase Init Error:", err);
-                document.getElementById('status').innerText = "⚠️ Firebase Connection Failed";
-                document.getElementById('status').style.background = "#ef4444";
+                document.getElementById('status').innerText = "⚠️ Offline Mode (IndexedDB Active)";
+                document.getElementById('status').style.background = "#d97706";
             }
         }
     }
@@ -813,6 +1023,49 @@
         }
     }
 
+    function yieldToBrowser() {
+        return new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    // Cloud/local DB writers are intentionally loop-free at the top level.
+    // The preview environment has a 400ms long-loop watchdog, so use small
+    // IndexedDB bulk batches and yield between batches.
+    async function putStudentsInLocalDB(list, startIndex = 0) {
+        const source = Array.isArray(list) ? list : [];
+        const batchSize = 5;
+        if (startIndex >= source.length) return;
+
+        const batch = source
+            .slice(startIndex, startIndex + batchSize)
+            .filter(st => st && st.id);
+
+        if (batch.length) {
+            await db.students.bulkPut(batch);
+        }
+
+        await yieldToBrowser();
+
+        return putStudentsInLocalDB(source, startIndex + batchSize);
+    }
+
+    async function putRecordsInLocalDB(recordMap, startIndex = 0) {
+        const entries = Object.entries(recordMap || {});
+        const batchSize = 5;
+        if (startIndex >= entries.length) return;
+
+        const batch = entries
+            .slice(startIndex, startIndex + batchSize)
+            .map(([key, val]) => ({ key, val }));
+
+        if (batch.length) {
+            await db.records.bulkPut(batch);
+        }
+
+        await yieldToBrowser();
+
+        return putRecordsInLocalDB(recordMap, startIndex + batchSize);
+    }
+
     function fetchClientFullDataCloud(cId) {
         if (!firebaseDB || !cId) return;
         const safeCId = sanitizeFirebaseKey(cId);
@@ -824,52 +1077,67 @@
 
         currentFirebaseListener = dbRef;
         currentFirebaseListener.on('value', async (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                if (data.config) {
-                    config = { ...config, ...data.config };
-                    if(!config.c) config.c = defaultCollegeName;
-                    await db.config.put({ id: 'app_config', data: config });
-                    applyConfigUI();
-                }
+            const syncVersion = ++cloudSyncVersion;
+            try {
+                const data = snapshot.val();
+                if (syncVersion !== cloudSyncVersion) return;
+                if (data) {
+                    if (data.config) {
+                        config = { ...config, ...data.config };
+                        if(!config.c) config.c = defaultCollegeName;
+                        await db.config.put({ id: 'app_config', data: config });
+                        if (syncVersion !== cloudSyncVersion) return;
+                        applyConfigUI();
+                    }
 
-                if (data.students) {
-                    let studentArray = [];
-                    if (Array.isArray(data.students)) {
-                        studentArray = data.students.filter(Boolean);
-                    } else if (typeof data.students === 'object') {
-                        studentArray = Object.values(data.students);
+                    if (data.students) {
+                        let studentArray = [];
+                        if (Array.isArray(data.students)) {
+                            studentArray = data.students.filter(Boolean);
+                        } else if (typeof data.students === 'object') {
+                            studentArray = Object.values(data.students);
+                        }
+                        
+                        faceMatcherBuildVersion++;
+                        faceMatcher = null;
+                        students = studentArray;
+                        await db.students.clear();
+                        if (syncVersion !== cloudSyncVersion) return;
+                        await putStudentsInLocalDB(students);
+                        if (syncVersion !== cloudSyncVersion) return;
+                        void buildFaceMatcher().catch(err => console.warn('Face matcher refresh skipped:', err));
+                    } else {
+                        students = [];
+                        faceMatcherBuildVersion++;
+                        faceMatcher = null;
+                        await db.students.clear();
                     }
-                    
-                    students = studentArray;
-                    await db.students.clear();
-                    for (let st of students) { 
-                        if(st && st.id) await db.students.put(st); 
+
+                    if (data.records) {
+                        records = data.records;
+                        await db.records.clear();
+                        if (syncVersion !== cloudSyncVersion) return;
+                        await putRecordsInLocalDB(records);
+                        if (syncVersion !== cloudSyncVersion) return;
+                    } else {
+                        records = {};
+                        await db.records.clear();
                     }
-                    buildFaceMatcher();
+
+                    if (syncVersion !== cloudSyncVersion) return;
+                    drawTable();
                 } else {
                     students = [];
-                    await db.students.clear();
-                }
-
-                if (data.records) {
-                    records = data.records;
-                    await db.records.clear();
-                    for (let k in records) { 
-                        await db.records.put({ key: k, val: records[k] }); 
-                    }
-                } else {
                     records = {};
+                    faceMatcherBuildVersion++;
+                    faceMatcher = null;
+                    await db.students.clear();
                     await db.records.clear();
+                    if (syncVersion !== cloudSyncVersion) return;
+                    drawTable();
                 }
-
-                drawTable();
-            } else {
-                students = [];
-                records = {};
-                await db.students.clear();
-                await db.records.clear();
-                drawTable();
+            } catch (err) {
+                console.warn('Cloud data sync skipped safely:', err);
             }
         });
     }
@@ -885,7 +1153,7 @@
         document.getElementById('titleColorInp').value = config.titleColor || '#ffffff';
         document.getElementById('headerBgInp').value = config.headerBg || '#1e3a8a';
         document.getElementById('monthInp').value = config.m || new Date().toISOString().slice(0, 7);
-        document.getElementById('waLangSelect').value = config.waLang || 'pashto';
+        document.getElementById('waLangSelect').value = config.waLang || 'english';
         document.getElementById('rowsPerPageSelect').value = config.rowsPerPage || 15;
         
         document.getElementById('gpsEnableSelect').value = config.gpsEnable || 'disabled';
@@ -1098,7 +1366,10 @@
 
         if (isFaceScanning) {
             isFaceScanning = false;
-            if (faceStream) { faceStream.getTracks().forEach(t => t.stop()); }
+            faceProcessing = false;
+            if (faceLoopTimer) { clearTimeout(faceLoopTimer); faceLoopTimer = null; }
+            if (faceStream) { faceStream.getTracks().forEach(t => t.stop()); faceStream = null; }
+            video.srcObject = null;
             area.style.display = 'none';
             return;
         }
@@ -1113,74 +1384,137 @@
 
         area.style.display = 'block';
         isFaceScanning = true;
+        faceProcessing = false;
 
         try {
             try {
                 faceStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { exact: "environment" } }
+                    video: { facingMode: { ideal: 'environment' } }
                 });
             } catch (errBack) {
-                faceStream = await navigator.mediaDevices.getUserMedia({
-                    video: true
-                });
+                faceStream = await navigator.mediaDevices.getUserMedia({ video: true });
             }
 
             video.srcObject = faceStream;
 
-            video.addEventListener('play', () => {
-                const displaySize = { width: video.clientWidth || 400, height: video.clientHeight || 300 };
-                faceapi.matchDimensions(canvas, displaySize);
+            const processFrame = async () => {
+                if (!isFaceScanning || faceProcessing) return;
 
-                const faceInterval = setInterval(async () => {
-                    if (!isFaceScanning) { clearInterval(faceInterval); return; }
+                if (video.paused || video.ended || video.readyState < 2) {
+                    faceLoopTimer = setTimeout(processFrame, 500);
+                    return;
+                }
 
-                    try {
-                        const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-                        const resizedDetections = faceapi.resizeResults(detections, displaySize);
-                        
-                        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-                        
-                        resizedDetections.forEach(detection => {
-                            const result = faceMatcher.findBestMatch(detection.descriptor);
-                            const box = detection.detection.box;
-                            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
-                            drawBox.draw(canvas);
+                faceProcessing = true;
+                try {
+                    const displaySize = {
+                        width: video.clientWidth || 400,
+                        height: video.clientHeight || 300
+                    };
+                    faceapi.matchDimensions(canvas, displaySize);
 
-                            if (result.label !== 'unknown') {
-                                markStudentAttendance(result.label);
-                            }
-                        });
-                    } catch (scanErr) {
-                        console.warn("Face matching frame skip:", scanErr);
+                    const detections = await faceapi
+                        .detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+                        .withFaceLandmarks()
+                        .withFaceDescriptors();
+
+                    const resizedDetections = faceapi.resizeResults(detections, displaySize);
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    resizedDetections.forEach(detection => {
+                        if (!faceMatcher || !detection.descriptor) return;
+
+                        const result = faceMatcher.findBestMatch(detection.descriptor);
+                        const box = detection.detection.box;
+                        const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
+                        drawBox.draw(canvas);
+
+                        if (result.label !== 'unknown') {
+                            markStudentAttendance(result.label);
+                        }
+                    });
+                } catch (scanErr) {
+                    console.warn('Face matching frame skipped:', scanErr);
+                } finally {
+                    faceProcessing = false;
+                    if (isFaceScanning) {
+                        // Keep a small gap between inference jobs; never start a
+                        // second Face-API inference while the previous one runs.
+                        faceLoopTimer = setTimeout(processFrame, 500);
                     }
-                }, 500);
-            });
+                }
+            };
+
+            video.onloadeddata = () => {
+                if (isFaceScanning && !faceProcessing) processFrame();
+            };
+
         } catch (err) {
-            alert("Camera Access Denied or Video Device Error!");
+            console.error('Face camera error:', err);
+            alert('Camera Access Denied or Video Device Error!');
+            if (faceStream) { faceStream.getTracks().forEach(t => t.stop()); faceStream = null; }
             area.style.display = 'none';
             isFaceScanning = false;
+            faceProcessing = false;
         }
     }
 
     async function markStudentAttendance(stId) {
+        if (activeUserRole === 'student') {
+            alert("🔒 View-Only Mode: Student/Parent role cannot edit attendance!");
+            return;
+        }
+
         const day = new Date().getDate();
         const key = `${config.m}-${day}-${stId}`;
         const st = students.find(s => String(s.id).trim() === String(stId).trim() || String(s.roll).trim() === String(stId).trim());
         const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
-        
-        if(st && records[key] !== "P") {
-            records[key] = "P";
-            await db.records.put({ key: key, val: "P" });
-            if(firebaseDB) {
-                firebaseDB.ref(`clients/${cId}/records/${sanitizeFirebaseKey(key)}`).set("P");
+        if (!st) return;
+
+        // Prevent Face-API from firing the same result continuously every frame.
+        const now = Date.now();
+        const cooldown = 4000;
+        if (lastScannedTimeMap[stId] && (now - lastScannedTimeMap[stId]) < cooldown) return;
+        lastScannedTimeMap[stId] = now;
+
+        const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        if (records[key] === "P") {
+            // The student was already marked today: show BOTH screen notification and voice.
+            showAttendanceNotification(`${st.name} Already Present`, 'already', `Attendance was already marked today at ${currentTime}`);
+            playVoiceMessage(`${st.name} already present`);
+            console.log(`⚠️ ${st.name} already present`);
+            return;
+        }
+
+        records[key] = "P";
+        await db.records.put({ key: key, val: "P" });
+        if (firebaseDB) {
+            try {
+                await firebaseDB.ref(`clients/${cId}/records/${sanitizeFirebaseKey(key)}`).set("P");
+            } catch (fbErr) {
+                console.warn('Firebase attendance sync skipped:', fbErr);
             }
-            drawTable();
-            alert(`🤖 AI Verified & Attendance Marked Present for ${st.name}!`);
-            if(st.phone) { sendWhatsAppAlertById(st.id, day); }
+        }
+
+        drawTable();
+
+        // Success: screen notification + English voice announcement.
+        showAttendanceNotification(`${st.name} Present`, 'present', `Attendance marked successfully at ${currentTime}`);
+        playVoiceMessage(`${st.name} present`);
+        console.log(`✅ ${st.name} Present`);
+
+        if (st.phone) {
+            sendWhatsAppAlertById(st.id, day);
         }
     }
 
     async function toggleLeaveById(stId, day) {
+        if (activeUserRole === 'student') {
+            alert("🔒 Access Denied!");
+            return;
+        }
         const key = `${config.m}-${day}-${stId}`;
         const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
         const safeKey = sanitizeFirebaseKey(key);
@@ -1282,6 +1616,11 @@
     }
 
     function addOrUpdateStudent() {
+        if (activeUserRole !== 'admin') {
+            alert("🔒 Access Denied: Only Administrator can modify student database.");
+            return;
+        }
+
         const editId = document.getElementById('editStudentId').value;
         if (!isPro && students.length >= 10 && !editId) {
             alert("⚠️ Free Tier Limit Reached (Max 10 Students)!\n\nPlease enter a Pro License Key to unlock unlimited students.");
@@ -1308,6 +1647,8 @@
 
     async function saveStudentData(editId, name, father, roll, id, phone, photo) {
         const stObj = { name, father, roll: String(roll), id: String(id), phone: String(phone), photo };
+        faceMatcherBuildVersion++;
+        faceMatcher = null;
         const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
         const safeId = sanitizeFirebaseKey(id);
 
@@ -1342,6 +1683,10 @@
     }
 
     function editStudentById(stId) {
+        if (activeUserRole !== 'admin') {
+            alert("🔒 Only Admin can edit student info!");
+            return;
+        }
         const st = students.find(s => String(s.id) === String(stId));
         if(!st) return;
         document.getElementById('editStudentId').value = st.id;
@@ -1355,12 +1700,18 @@
     }
 
     async function deleteStudentById(stId) {
+        if (activeUserRole !== 'admin') {
+            alert("🔒 Access Denied!");
+            return;
+        }
         const st = students.find(s => String(s.id) === String(stId));
         if(!st) return;
         if(confirm(`Are you sure you want to delete ${st.name}?`)) {
             const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
             const safeStId = sanitizeFirebaseKey(stId);
 
+            faceMatcherBuildVersion++;
+            faceMatcher = null;
             students = students.filter(s => String(s.id) !== String(stId));
             await db.students.delete(stId);
 
@@ -1392,6 +1743,15 @@
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
+    }
+
+    function resetSystem() {
+        if (confirm("⚠️ Warning: This will delete ALL local and synced records! Do you want to proceed?")) {
+            db.delete().then(() => {
+                localStorage.clear();
+                location.reload();
+            });
+        }
     }
 
     function renderAnalyticsChart(labels, percentages) {
@@ -1570,6 +1930,8 @@
                 const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
                 let importedCount = 0;
+                faceMatcherBuildVersion++;
+                faceMatcher = null;
                 const cId = sanitizeFirebaseKey(config.clientId || defaultCollegeName);
 
                 for (let r of rows) {
@@ -1655,7 +2017,7 @@
 
     function generateFooterHTML() {
         const sigImg = config.sig ? `<img src="${config.sig}" style="height:32px; max-width:120px; object-fit:contain; display:block; margin:0 auto; transform: translateY(11px); position:relative; z-index:2;">` : '';
-        const sigTitleText = config.sigTitle ? `<span style="font-weight:bold; font-size:9.5px; border-top:1.5px solid #000; padding-top:2px; display:inline-block; min-width:120px; text-align:center; color:#000; position:relative; z-index:1;">${config.sigTitle}</span>` : '<span style="font-weight:bold; font-size:9.5px; border-top:1.5px solid #000; padding-top:2px; display:inline-block; min-width:120px; text-align:center; color:#000; position:relative; z-index:1;">Principle signature</span>';
+        const sigTitleText = config.sigTitle ? `<span style="font-weight:bold; font-size:9.5px; border-top:1.5px solid #000; padding-top:2px; display:inline-block; min-width:120px; text-align:center; color:#000; position:relative; z-index:1;">${config.sigTitle}</span>` : '<span style="font-weight:bold; font-size:9.5px; border-top:1.5px solid #000; padding-top:2px; display:inline-block; min-width:120px; text-align:center; color:#000; position:relative; z-index:1;">Principal Signature</span>';
         
         const qrImgHTML = cachedFooterQrDataUrl ? `<img src="${cachedFooterQrDataUrl}" style="width:60px; height:60px; display:block; border:1px solid #000; padding:2px; background:white;">` : '';
 
@@ -1663,7 +2025,7 @@
             <div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%; margin-top:4px;">
                 <div style="text-align:left;">
                     ${qrImgHTML}
-                    <span style="font-size:6.5px; font-weight:bold; color:#000;">Scan for Verification</span>
+                    <span style="font-size:6.5px; font-weight:bold; color:#000;">Scan Verification</span>
                 </div>
                 <div style="text-align:center;">
                     ${sigImg}
@@ -1714,10 +2076,10 @@
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:bold;">${st.name}</span>
                         <span class="action-buttons-cell">
-                            <button class="action-btn btn-leave" onclick="toggleLeaveById('${st.id}', ${todayNum})">🏖️</button>
-                            <button class="action-btn btn-wa" onclick="sendWhatsAppAlertById('${st.id}', ${todayNum})">💬</button>
-                            <button class="action-btn btn-edit" onclick="editStudentById('${st.id}')">✏️</button>
-                            <button class="action-btn btn-del" onclick="deleteStudentById('${st.id}')">🗑️</button>
+                            ${activeUserRole !== 'student' ? `<button class="action-btn btn-leave" onclick="toggleLeaveById('${st.id}',${todayNum})">🏖️</button>
+                            <button class="action-btn btn-wa" onclick="sendWhatsAppAlertById('${st.id}',${todayNum})">💬</button>` : ''}
+                            ${activeUserRole === 'admin' ? `<button class="action-btn btn-edit" onclick="editStudentById('${st.id}')">✏️</button>
+                            <button class="action-btn btn-del" onclick="deleteStudentById('${st.id}')">🗑️</button>` : ''}
                         </span>
                     </div>
                 </td>
@@ -1919,90 +2281,71 @@
 
         document.body.classList.remove('print-mode-sheet');
         document.body.classList.add('print-mode-qr');
+
         const container = document.getElementById('qr-print-container');
         container.innerHTML = '';
 
-        let totalPages = Math.ceil(listToPrint.length / perPage);
+        let currentPageDiv = null;
 
-        for (let p = 0; p < totalPages; p++) {
-            const pageDiv = document.createElement('div');
-            pageDiv.className = 'qr-page';
-            
-            const chunk = listToPrint.slice(p * perPage, (p + 1) * perPage);
+        for (let i = 0; i < listToPrint.length; i++) {
+            if (i % perPage === 0) {
+                currentPageDiv = document.createElement('div');
+                currentPageDiv.className = 'qr-page';
+                container.appendChild(currentPageDiv);
+            }
 
-            chunk.forEach((st, idx) => {
-                const cardIndex = p * perPage + idx;
-                const card = document.createElement('div');
-                card.className = 'id-card-item';
-                
-                const instName = document.getElementById('classInp').value.trim() || config.c || defaultCollegeName;
-                const stImgSrc = st.photo || 'https://via.placeholder.com/100x120?text=No+Photo';
-                const logoHTML = config.logo ? `<img src="${config.logo}" class="id-card-logo">` : `<div style="width:22px;"></div>`;
-                
-                // Dynamic Signature Image and Title for Card Footer
-                const sigImgHTML = config.sig ? `<img src="${config.sig}" class="id-card-sig-img">` : '';
-                const sigTitleText = config.sigTitle ? config.sigTitle : 'Principal Signature';
+            const st = listToPrint[i];
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'id-card-item';
 
-                card.innerHTML = `
-                    <div class="id-card-header">
-                        ${logoHTML}
-                        <div class="id-card-header-title">${instName}</div>
+            const photoSrc = (st.photo && st.photo.includes("data:image")) ? st.photo : 'https://via.placeholder.com/150';
+            const logoSrc = config.logo || 'https://via.placeholder.com/50';
+            const sigSrc = config.sig || '';
+
+            cardDiv.innerHTML = `
+                <div class="id-card-header">
+                    <img src="${logoSrc}" class="id-card-logo">
+                    <div class="id-card-header-title">${config.c || defaultCollegeName}</div>
+                </div>
+                <div class="id-card-body">
+                    <img src="${photoSrc}" class="id-card-photo">
+                    <div class="id-card-details">
+                        <b>Name:</b> ${st.name}<br>
+                        <b>Father:</b> ${st.father || '-'}<br>
+                        <b>Roll No:</b> ${st.roll}<br>
+                        <b>Phone:</b> ${st.phone || '-'}
                     </div>
-                    <div class="id-card-body">
-                        <img src="${stImgSrc}" class="id-card-photo">
-                        <div class="id-card-details">
-                            <div><b>Name:</b> ${st.name}</div>
-                            <div><b>Father:</b> ${st.father || '-'}</div>
-                            <div><b>Roll No:</b> ${st.roll}</div>
-                            <div><b>ID:</b> ${st.id}</div>
-                        </div>
-                        <div id="qrbatch-${cardIndex}" class="id-card-qr"></div>
+                    <div class="id-card-qr" id="qr-target-${st.id}"></div>
+                </div>
+                <div class="id-card-footer">
+                    <div class="id-card-footer-text">STUDENT CARD</div>
+                    <div class="id-card-sig-container">
+                        ${sigSrc ? `<img src="${sigSrc}" class="id-card-sig-img">` : ''}
+                        <div class="id-card-sig-title">${config.sigTitle || 'Authorized Signature'}</div>
                     </div>
-                    <div class="id-card-footer">
-                        <span class="id-card-footer-text">Official Student Identity Card</span>
-                        <div class="id-card-sig-container">
-                            ${sigImgHTML}
-                            <span class="id-card-sig-title">${sigTitleText}</span>
-                        </div>
-                    </div>
-                `;
-                pageDiv.appendChild(card);
-            });
+                </div>
+            `;
 
-            container.appendChild(pageDiv);
-        }
+            currentPageDiv.appendChild(cardDiv);
 
-        for (let p = 0; p < totalPages; p++) {
-            const chunk = listToPrint.slice(p * perPage, (p + 1) * perPage);
-            chunk.forEach((st, idx) => {
-                const cardIndex = p * perPage + idx;
-                const qrElem = document.getElementById(`qrbatch-${cardIndex}`);
-                if (qrElem) {
-                    qrElem.innerHTML = '';
-                    new QRCode(qrElem, {
+            setTimeout(() => {
+                const qrBox = document.getElementById(`qr-target-${st.id}`);
+                if (qrBox) {
+                    qrBox.innerHTML = '';
+                    new QRCode(qrBox, {
                         text: String(st.id),
                         width: 45,
                         height: 45,
-                        correctLevel: QRCode.CorrectLevel.H
+                        correctLevel: QRCode.CorrectLevel.M
                     });
                 }
-            });
+            }, 50);
         }
 
-        setTimeout(() => { window.print(); }, 400);
-    }
-
-    async function resetSystem() {
-        if (confirm("⚠️ WARNING: Are you sure you want to reset all local students and attendance records?")) {
-            await db.students.clear();
-            await db.records.clear();
-            students = [];
-            records = {};
-            drawTable();
-            alert("System reset completed successfully!");
-        }
+        setTimeout(() => {
+            window.print();
+        }, 500);
     }
 </script>
-
 </body>
 </html>
